@@ -4,67 +4,71 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Mount Etna · Field Journal of a Vulcanologist</title>
+
+<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Italianno&family=Caveat:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+
+<!-- Library: Leaflet (interactive maps) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<!-- Library: D3 (data-viz) -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<!-- Library: Three.js (3D volcano) — UMD build -->
+<script src="https://unpkg.com/three@0.144.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.144.0/examples/js/controls/OrbitControls.js"></script>
+
+<!-- Library: tsParticles (ambient ash) -->
+<script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
+
+<!-- Library: GSAP (transitions) -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
 <style>
   :root {
-    /* aged paper palette */
     --paper:        #efe5cd;
     --paper-warm:   #ece0c2;
     --paper-cool:   #e9dec3;
     --paper-edge:   #c8b78f;
     --paper-deep:   #b9a780;
-    --paper-stain:  #d8c89c;
 
-    /* ink palette */
     --ink:          #2a1f15;
     --ink-soft:     #4d3a26;
     --ink-faint:    #7a6240;
     --ink-ghost:    #a89372;
 
-    /* hand-pen ink (slight blue-black) */
     --pen:          #1d2a3a;
     --pen-soft:     #2e425e;
 
-    /* volcanic accents (cinnabar / vermillion) */
     --vermillion:    #a82e1a;
     --vermillion-deep:#7a1f0f;
     --rust:          #c45e34;
     --ember:         #d8804a;
 
-    /* botanical accent (lichen / sage) */
     --sage:         #7a8b6e;
     --sage-deep:    #4f5e44;
 
-    /* gilt */
     --gilt:         #b8893a;
     --gilt-soft:    #d6b46a;
 
-    /* wax seal */
     --wax:          #8a1f15;
     --wax-deep:     #5a120a;
     --wax-shine:    #c44430;
 
-    /* shadow */
     --shadow:       rgba(60, 40, 20, 0.18);
     --shadow-deep:  rgba(40, 25, 12, 0.45);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html, body {
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
-  }
+  html, body { height: 100%; width: 100%; overflow: hidden; overscroll-behavior: none; }
 
   body {
     font-family: 'EB Garamond', Georgia, serif;
     color: var(--ink);
-    background:
-      radial-gradient(ellipse at 50% 30%, #4a2f1c 0%, #2a1810 60%, #150b06 100%);
+    background: radial-gradient(ellipse at 50% 30%, #4a2f1c 0%, #2a1810 60%, #150b06 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -75,6 +79,14 @@
     position: relative;
   }
 
+  /* ambient particles layer */
+  #tsparticles {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
   /* ========== BOOK ========== */
   .book {
     position: relative;
@@ -83,14 +95,10 @@
     height: calc(100vh - 24px);
     max-height: 820px;
     perspective: 1800px;
+    z-index: 1;
   }
 
-  .pages {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transform-style: preserve-3d;
-  }
+  .pages { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
 
   .page {
     position: absolute;
@@ -128,7 +136,6 @@
     z-index: 1;
   }
 
-  /* paper grain */
   .page::before {
     content: '';
     position: absolute;
@@ -142,8 +149,6 @@
     mix-blend-mode: multiply;
     z-index: 1;
   }
-
-  /* foxing & spine shadow */
   .page::after {
     content: '';
     position: absolute;
@@ -174,7 +179,6 @@
   .page-inner::-webkit-scrollbar { width: 3px; }
   .page-inner::-webkit-scrollbar-thumb { background: var(--ink-faint); border-radius: 2px; }
 
-  /* ruled left margin (notebook column) */
   .ruled-margin {
     position: absolute;
     top: 0; bottom: 0;
@@ -189,8 +193,6 @@
     z-index: 2;
     pointer-events: none;
   }
-
-  /* horizontal ruling lines (subtle, like notebook) */
   .ruled-page {
     position: absolute;
     inset: 0;
@@ -207,7 +209,6 @@
     z-index: 1;
   }
 
-  /* page header strip */
   .page-header {
     display: flex;
     align-items: center;
@@ -231,7 +232,6 @@
     background: rgba(168, 46, 26, 0.05);
   }
 
-  /* footer */
   .page-footer {
     margin-top: auto;
     padding-top: 18px;
@@ -250,12 +250,9 @@
     background: linear-gradient(to right, transparent, var(--ink-ghost) 30%, var(--ink-ghost) 70%, transparent);
     margin: 0 12px;
   }
-  .footer-num {
-    color: var(--vermillion);
-    font-weight: 700;
-  }
+  .footer-num { color: var(--vermillion); font-weight: 700; }
 
-  /* ========== HANDWRITTEN MARGINALIA ========== */
+  /* marginalia */
   .margin-note {
     position: absolute;
     left: -3px;
@@ -281,9 +278,8 @@
     margin-right: 3px;
   }
   .margin-note.right::before { content: '↰'; margin-right: 0; margin-left: 3px; }
-  .margin-note.no-arrow::before { content: ''; margin: 0; }
 
-  /* ========== TYPEWRITTEN TAGS ========== */
+  /* tags */
   .tag {
     display: inline-block;
     font-family: 'Special Elite', monospace;
@@ -296,19 +292,11 @@
     border-radius: 2px;
     background: rgba(245, 232, 200, 0.5);
     transform: rotate(-1deg);
+    margin: 2px 4px 2px 0;
   }
-  .tag.red {
-    color: var(--vermillion);
-    border-color: var(--vermillion);
-    background: rgba(168, 46, 26, 0.06);
-  }
-  .tag.sage {
-    color: var(--sage-deep);
-    border-color: var(--sage);
-    background: rgba(122, 139, 110, 0.08);
-  }
+  .tag.red { color: var(--vermillion); border-color: var(--vermillion); background: rgba(168, 46, 26, 0.06); }
+  .tag.sage { color: var(--sage-deep); border-color: var(--sage); background: rgba(122, 139, 110, 0.08); }
 
-  /* specimen tag (twine-tied) */
   .specimen-tag {
     position: relative;
     display: inline-block;
@@ -316,7 +304,7 @@
     border: 1px solid var(--ink-faint);
     border-radius: 4px;
     padding: 8px 12px 8px 16px;
-    margin: 8px 0;
+    margin: 8px 0 8px 28px;
     font-family: 'Special Elite', monospace;
     font-size: 11px;
     color: var(--ink);
@@ -326,11 +314,9 @@
   .specimen-tag::before {
     content: '';
     position: absolute;
-    left: -2px;
-    top: 50%;
+    left: -2px; top: 50%;
     transform: translateY(-50%);
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     border-radius: 50%;
     background: var(--paper-deep);
     box-shadow: inset 1px 1px 1px rgba(0,0,0,0.3);
@@ -338,16 +324,14 @@
   .specimen-tag::after {
     content: '';
     position: absolute;
-    left: -28px;
-    top: 50%;
-    width: 26px;
-    height: 1px;
+    left: -28px; top: 50%;
+    width: 26px; height: 1px;
     background: var(--ink-faint);
     transform: rotate(-12deg);
     transform-origin: right center;
   }
 
-  /* ========== TYPOGRAPHY ========== */
+  /* typography */
   .eyebrow {
     font-family: 'Special Elite', monospace;
     font-size: 10px;
@@ -357,7 +341,6 @@
     text-align: center;
     margin-bottom: 4px;
   }
-
   .display-title {
     font-family: 'Cinzel', serif;
     font-weight: 700;
@@ -368,7 +351,6 @@
     color: var(--ink);
     text-shadow: 0 1px 0 rgba(255, 245, 220, 0.6);
   }
-
   .script-sub {
     font-family: 'Italianno', cursive;
     font-size: 32px;
@@ -377,7 +359,6 @@
     color: var(--vermillion-deep);
     margin-top: -2px;
   }
-
   .meta-line {
     font-family: 'Special Elite', monospace;
     font-size: 9px;
@@ -387,7 +368,6 @@
     text-transform: uppercase;
     margin: 6px 0 4px;
   }
-
   .lead {
     font-family: 'EB Garamond', serif;
     font-style: italic;
@@ -397,7 +377,6 @@
     color: var(--ink-soft);
     margin: 8px 4px 12px;
   }
-
   .body {
     font-family: 'EB Garamond', serif;
     font-size: 15px;
@@ -414,11 +393,8 @@
     text-decoration: underline;
     text-decoration-color: var(--vermillion);
     text-decoration-thickness: 1px;
-    text-decoration-skip-ink: none;
     text-underline-offset: 2px;
   }
-
-  /* drop cap */
   .drop-cap::first-letter {
     font-family: 'Cinzel', serif;
     font-size: 52px;
@@ -430,7 +406,6 @@
     text-shadow: 0 1px 0 rgba(255, 245, 220, 0.5);
   }
 
-  /* ========== SECTION HEADER ========== */
   .section-head {
     display: flex;
     align-items: center;
@@ -446,11 +421,8 @@
     border: 1px solid var(--vermillion);
     padding: 2px 6px;
     border-radius: 50%;
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
   .section-head .label {
@@ -465,7 +437,7 @@
     padding-bottom: 4px;
   }
 
-  /* ========== ILLUSTRATION FRAMES ========== */
+  /* sketch frame for embedded illustrations / charts / maps */
   .sketch-frame {
     position: relative;
     margin: 14px 6px 18px;
@@ -479,28 +451,15 @@
   .sketch-frame::before, .sketch-frame::after {
     content: '';
     position: absolute;
-    width: 14px;
-    height: 14px;
+    width: 14px; height: 14px;
     border: 1.5px solid var(--vermillion);
   }
-  .sketch-frame::before {
-    top: -1px; left: -1px;
-    border-right: none; border-bottom: none;
-  }
-  .sketch-frame::after {
-    bottom: -1px; right: -1px;
-    border-left: none; border-top: none;
-  }
-  .sketch-frame svg {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
+  .sketch-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .sketch-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+  .sketch-frame svg, .sketch-frame .frame-target { width: 100%; height: auto; display: block; }
   .sketch-caption {
     position: absolute;
-    bottom: 6px;
-    left: 0;
-    right: 0;
+    bottom: 6px; left: 0; right: 0;
     text-align: center;
     font-family: 'Caveat', cursive;
     font-size: 14px;
@@ -515,14 +474,14 @@
     margin-right: 6px;
   }
 
-  /* ========== INFO PANEL ========== */
+  /* info panel */
   .info-panel {
     background:
       linear-gradient(135deg, rgba(168, 46, 26, 0.05) 0%, rgba(216, 128, 74, 0.04) 100%),
       var(--paper-warm);
     border: 1px solid var(--ink-ghost);
     border-left: 3px solid var(--vermillion);
-    padding: 12px 14px 12px 14px;
+    padding: 12px 14px;
     margin: 14px 0;
     border-radius: 0 4px 4px 0;
     position: relative;
@@ -531,15 +490,11 @@
     content: '';
     position: absolute;
     top: -6px;
-    left: 12px;
-    right: 12px;
+    left: 12px; right: 12px;
     height: 6px;
     background:
-      repeating-linear-gradient(45deg,
-        transparent 0,
-        transparent 3px,
-        rgba(168, 46, 26, 0.12) 3px,
-        rgba(168, 46, 26, 0.12) 5px);
+      repeating-linear-gradient(45deg, transparent 0, transparent 3px,
+        rgba(168, 46, 26, 0.12) 3px, rgba(168, 46, 26, 0.12) 5px);
   }
   .info-panel-title {
     font-family: 'Special Elite', monospace;
@@ -548,29 +503,19 @@
     letter-spacing: 0.3em;
     text-transform: uppercase;
     margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    display: flex; align-items: center; gap: 6px;
   }
   .info-panel-title::before {
     content: '◈';
     color: var(--gilt);
     font-size: 12px;
   }
-  .info-panel p {
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: var(--ink);
-    margin-bottom: 6px;
-  }
+  .info-panel p { font-size: 13.5px; line-height: 1.55; color: var(--ink); margin-bottom: 6px; }
   .info-panel p:last-child { margin-bottom: 0; }
   .info-panel strong { color: var(--vermillion-deep); }
 
-  /* ========== FEATURE LIST ========== */
-  .feat-list {
-    list-style: none;
-    margin: 12px 0;
-  }
+  /* feature list */
+  .feat-list { list-style: none; margin: 12px 0; }
   .feat-list li {
     position: relative;
     padding: 5px 0 5px 22px;
@@ -583,79 +528,13 @@
   .feat-list li::before {
     content: '✦';
     position: absolute;
-    left: 2px;
-    top: 5px;
+    left: 2px; top: 5px;
     color: var(--vermillion);
     font-size: 11px;
   }
-  .feat-list li strong {
-    font-family: 'Cinzel', serif;
-    font-size: 12px;
-    color: var(--ink);
-    letter-spacing: 0.04em;
-  }
+  .feat-list li strong { font-family: 'Cinzel', serif; font-size: 12px; color: var(--ink); letter-spacing: 0.04em; }
 
-  /* ========== TIMELINE ========== */
-  .timeline {
-    position: relative;
-    padding: 4px 0 4px 30px;
-    margin: 14px 0;
-  }
-  .timeline::before {
-    content: '';
-    position: absolute;
-    left: 7px;
-    top: 8px;
-    bottom: 8px;
-    width: 1.5px;
-    background:
-      repeating-linear-gradient(to bottom,
-        var(--vermillion) 0, var(--vermillion) 4px,
-        transparent 4px, transparent 7px);
-  }
-  .t-item {
-    position: relative;
-    margin-bottom: 12px;
-    padding-bottom: 4px;
-  }
-  .t-item:last-child { margin-bottom: 0; }
-  .t-item::before {
-    content: '';
-    position: absolute;
-    left: -27px;
-    top: 5px;
-    width: 8px;
-    height: 8px;
-    background: var(--vermillion);
-    border: 1px solid var(--paper);
-    border-radius: 50%;
-    box-shadow: 0 0 0 1.5px var(--vermillion);
-  }
-  .t-year {
-    font-family: 'Special Elite', monospace;
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    color: var(--vermillion);
-    margin-bottom: 2px;
-  }
-  .t-event {
-    font-family: 'Cinzel', serif;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink);
-    letter-spacing: 0.04em;
-    margin-bottom: 3px;
-  }
-  .t-desc {
-    font-family: 'EB Garamond', serif;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--ink-soft);
-    text-align: left;
-  }
-  .t-desc em { color: var(--vermillion-deep); }
-
-  /* ========== STAT GRID ========== */
+  /* stat grid */
   .stat-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -692,7 +571,6 @@
     margin-top: 3px;
   }
 
-  /* ========== QUOTE ========== */
   .quote {
     text-align: center;
     padding: 14px 18px;
@@ -702,7 +580,7 @@
     position: relative;
   }
   .quote::before {
-    content: '“';
+    content: '"';
     position: absolute;
     top: -8px;
     left: 50%;
@@ -729,7 +607,7 @@
     text-transform: uppercase;
   }
 
-  /* ========== LOCATION CARD ========== */
+  /* loc card */
   .loc-card {
     background: rgba(252, 246, 226, 0.55);
     border: 1px solid var(--ink-ghost);
@@ -740,26 +618,16 @@
   .loc-card::after {
     content: '';
     position: absolute;
-    top: -1px;
-    left: -1px;
-    right: -1px;
+    top: -1px; left: -1px; right: -1px;
     height: 2px;
     background: var(--vermillion);
   }
-  .loc-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-  }
+  .loc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .loc-icon {
-    width: 28px;
-    height: 28px;
+    width: 28px; height: 28px;
     border: 1.5px solid var(--vermillion);
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     color: var(--vermillion);
     font-family: 'Cinzel', serif;
     font-weight: 700;
@@ -767,27 +635,9 @@
     background: var(--paper);
     flex-shrink: 0;
   }
-  .loc-name {
-    font-family: 'Cinzel', serif;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--ink);
-    letter-spacing: 0.05em;
-    line-height: 1.1;
-  }
-  .loc-it {
-    font-family: 'EB Garamond', serif;
-    font-style: italic;
-    font-size: 12px;
-    color: var(--ink-faint);
-    margin-top: 1px;
-  }
-  .loc-desc {
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: var(--ink);
-    text-align: left;
-  }
+  .loc-name { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: 0.05em; line-height: 1.1; }
+  .loc-it { font-family: 'EB Garamond', serif; font-style: italic; font-size: 12px; color: var(--ink-faint); margin-top: 1px; }
+  .loc-desc { font-size: 13.5px; line-height: 1.55; color: var(--ink); text-align: left; }
   .loc-desc em { color: var(--vermillion-deep); }
   .loc-tip {
     margin-top: 8px;
@@ -798,15 +648,11 @@
     color: var(--pen);
     line-height: 1.25;
   }
-  .loc-tip::before {
-    content: '✎ ';
-    color: var(--vermillion);
-  }
+  .loc-tip::before { content: '✎ '; color: var(--vermillion); }
 
   /* ========== COVER ========== */
   .cover-page {
-    background:
-      radial-gradient(ellipse at 50% 30%, #e2d2a8 0%, #c8b078 60%, #9a7c45 100%);
+    background: radial-gradient(ellipse at 50% 30%, #e2d2a8 0%, #c8b078 60%, #9a7c45 100%);
   }
   .cover-page::before {
     background-image:
@@ -822,12 +668,11 @@
     flex-direction: column;
     z-index: 3;
   }
-
   .cover-frame {
     position: relative;
     flex: 1;
     border: 2px double var(--ink);
-    padding: 24px 18px 30px;
+    padding: 18px 16px 22px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -839,23 +684,10 @@
     width: 26px;
     height: 26px;
   }
-  .cover-frame::before {
-    top: 4px; left: 4px;
-    border-left: 1px solid var(--ink);
-    border-top: 1px solid var(--ink);
-  }
-  .cover-frame::after {
-    bottom: 4px; right: 4px;
-    border-right: 1px solid var(--ink);
-    border-bottom: 1px solid var(--ink);
-  }
+  .cover-frame::before { top: 4px; left: 4px; border-left: 1px solid var(--ink); border-top: 1px solid var(--ink); }
+  .cover-frame::after  { bottom: 4px; right: 4px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
 
-  .cover-top {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
+  .cover-top { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .cover-pre {
     font-family: 'Special Elite', monospace;
     font-size: 9px;
@@ -873,95 +705,84 @@
   .cover-title {
     font-family: 'Cinzel', serif;
     font-weight: 700;
-    font-size: 46px;
+    font-size: 38px;
     line-height: 0.96;
     letter-spacing: 0.05em;
     color: var(--vermillion-deep);
     text-align: center;
-    margin: 8px 0 4px;
+    margin: 4px 0 2px;
     text-shadow: 0 1px 0 rgba(255, 245, 220, 0.5);
   }
-  .cover-and {
-    font-family: 'Italianno', cursive;
-    font-size: 26px;
-    color: var(--ink-soft);
-    line-height: 0.9;
-    margin: 2px 0;
-  }
-  .cover-second {
-    font-family: 'Cinzel', serif;
-    font-weight: 600;
-    font-size: 22px;
-    letter-spacing: 0.18em;
-    color: var(--ink);
-  }
-  .cover-sub {
-    font-family: 'Italianno', cursive;
-    font-size: 28px;
-    color: var(--vermillion-deep);
-    line-height: 1;
-    margin-top: 6px;
-  }
+  .cover-and { font-family: 'Italianno', cursive; font-size: 22px; color: var(--ink-soft); line-height: 0.9; }
+  .cover-second { font-family: 'Cinzel', serif; font-weight: 600; font-size: 18px; letter-spacing: 0.18em; color: var(--ink); }
+  .cover-sub { font-family: 'Italianno', cursive; font-size: 22px; color: var(--vermillion-deep); line-height: 1; margin-top: 4px; }
 
-  .cover-illustration {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* 3D volcano container */
+  .volcano-3d {
+    position: relative;
     width: 100%;
+    height: 220px;
     margin: 8px 0;
+    cursor: grab;
   }
-  .cover-illustration svg {
-    width: 100%;
-    max-width: 280px;
-    height: auto;
+  .volcano-3d:active { cursor: grabbing; }
+  .volcano-3d canvas { display: block; width: 100% !important; height: 100% !important; }
+  .v3d-hint {
+    position: absolute;
+    bottom: 4px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Caveat', cursive;
+    font-size: 12px;
+    color: var(--ink-faint);
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  .v3d-tag {
+    position: absolute;
+    top: 6px; left: 8px;
+    font-family: 'Special Elite', monospace;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    color: var(--vermillion);
+    text-transform: uppercase;
+    background: rgba(239,229,205,0.7);
+    border: 1px solid var(--vermillion);
+    padding: 2px 6px;
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .v3d-readout {
+    position: absolute;
+    top: 6px; right: 8px;
+    font-family: 'Special Elite', monospace;
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    color: var(--ink-soft);
+    background: rgba(239,229,205,0.7);
+    border: 1px solid var(--ink-faint);
+    padding: 2px 6px;
+    border-radius: 2px;
+    pointer-events: none;
   }
 
-  .cover-bottom {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-  .cover-author {
-    font-family: 'Caveat', cursive;
-    font-size: 18px;
-    color: var(--pen);
-    transform: rotate(-2deg);
-  }
-  .cover-place {
-    font-family: 'Cinzel', serif;
-    font-size: 11px;
-    letter-spacing: 0.4em;
-    color: var(--ink);
-    margin-top: 6px;
-  }
-  .cover-year {
-    font-family: 'EB Garamond', serif;
-    font-style: italic;
-    font-size: 12px;
-    color: var(--ink-soft);
-  }
+  .cover-bottom { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .cover-author { font-family: 'Caveat', cursive; font-size: 16px; color: var(--pen); transform: rotate(-2deg); }
+  .cover-place { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.4em; color: var(--ink); margin-top: 4px; }
+  .cover-year { font-family: 'EB Garamond', serif; font-style: italic; font-size: 12px; color: var(--ink-soft); }
 
   /* wax seal */
   .wax-seal {
     position: absolute;
-    top: 14px;
-    right: 14px;
-    width: 56px;
-    height: 56px;
+    top: 14px; right: 14px;
+    width: 56px; height: 56px;
     background: radial-gradient(circle at 35% 30%, var(--wax-shine) 0%, var(--wax) 40%, var(--wax-deep) 100%);
     border-radius: 50%;
     box-shadow:
       inset -2px -3px 6px rgba(0,0,0,0.4),
       inset 2px 2px 4px rgba(255,180,160,0.3),
       0 3px 6px rgba(60, 20, 10, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Cinzel', serif;
-    font-weight: 700;
-    font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif; font-weight: 700; font-size: 20px;
     color: var(--wax-deep);
     text-shadow: 0 1px 0 rgba(255, 180, 160, 0.4);
     transform: rotate(-8deg);
@@ -974,45 +795,28 @@
     border: 1px solid rgba(90, 18, 10, 0.45);
     border-radius: 50%;
   }
-  .wax-seal::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: 50%;
-    background:
-      radial-gradient(circle at 30% 30%, rgba(255, 180, 160, 0.5), transparent 30%);
-    pointer-events: none;
-  }
 
-  /* ribbon bookmark */
   .ribbon {
     position: absolute;
-    top: -4px;
-    right: 32px;
-    width: 14px;
-    height: 80px;
+    top: -4px; right: 32px;
+    width: 14px; height: 80px;
     background: linear-gradient(to bottom, var(--vermillion) 0%, var(--vermillion-deep) 100%);
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    z-index: 4;
-    pointer-events: none;
+    z-index: 4; pointer-events: none;
   }
   .ribbon::after {
     content: '';
     position: absolute;
-    bottom: -7px;
-    left: 0;
-    width: 0;
-    height: 0;
+    bottom: -7px; left: 0;
+    width: 0; height: 0;
     border-left: 7px solid var(--vermillion);
     border-right: 7px solid var(--vermillion-deep);
     border-bottom: 7px solid transparent;
   }
 
-  /* swipe hint */
   .swipe-hint {
     position: absolute;
-    bottom: 16px;
-    left: 50%;
+    bottom: 16px; left: 50%;
     transform: translateX(-50%);
     font-family: 'Caveat', cursive;
     font-size: 15px;
@@ -1026,13 +830,8 @@
     20%, 80% { opacity: 0.75; }
   }
 
-  /* ========== INDEX (TOC) ========== */
-  .toc-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin: 6px 0 12px;
-  }
+  /* TOC */
+  .toc-list { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 12px; }
   .toc-item {
     display: flex;
     align-items: baseline;
@@ -1042,41 +841,14 @@
     border-radius: 3px;
     transition: background 0.2s;
   }
-  .toc-item:hover, .toc-item:active {
-    background: rgba(168, 46, 26, 0.06);
-  }
-  .toc-num {
-    font-family: 'Cinzel', serif;
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--vermillion);
-    min-width: 30px;
-    letter-spacing: 0.06em;
-  }
-  .toc-name {
-    font-family: 'EB Garamond', serif;
-    font-size: 16px;
-    color: var(--ink);
-    font-weight: 500;
-  }
-  .toc-name em {
-    font-style: italic;
-    color: var(--ink-faint);
-    font-size: 13px;
-  }
-  .toc-dots {
-    flex: 1;
-    border-bottom: 1.5px dotted var(--ink-faint);
-    margin: 0 6px 5px;
-    opacity: 0.55;
-  }
-  .toc-page {
-    font-family: 'Cinzel', serif;
-    font-size: 11px;
-    color: var(--ink-soft);
-  }
+  .toc-item:hover, .toc-item:active { background: rgba(168, 46, 26, 0.06); }
+  .toc-num { font-family: 'Cinzel', serif; font-weight: 600; font-size: 13px; color: var(--vermillion); min-width: 30px; letter-spacing: 0.06em; }
+  .toc-name { font-family: 'EB Garamond', serif; font-size: 16px; color: var(--ink); font-weight: 500; }
+  .toc-name em { font-style: italic; color: var(--ink-faint); font-size: 13px; }
+  .toc-dots { flex: 1; border-bottom: 1.5px dotted var(--ink-faint); margin: 0 6px 5px; opacity: 0.55; }
+  .toc-page { font-family: 'Cinzel', serif; font-size: 11px; color: var(--ink-soft); }
 
-  /* ========== BACK LINK ========== */
+  /* back link */
   .back-link {
     display: inline-flex;
     align-items: center;
@@ -1093,52 +865,34 @@
     transition: all 0.2s;
     align-self: flex-start;
   }
-  .back-link:hover {
-    color: var(--vermillion);
-    border-color: var(--vermillion);
-  }
+  .back-link:hover { color: var(--vermillion); border-color: var(--vermillion); }
   .back-link svg { width: 11px; height: 11px; }
 
-  /* ========== CONTROLS ========== */
+  /* controls */
   .controls {
     position: fixed;
-    bottom: 14px;
-    left: 50%;
+    bottom: 14px; left: 50%;
     transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    display: flex; align-items: center; gap: 12px;
     z-index: 100;
   }
   .nav-btn {
-    width: 42px;
-    height: 42px;
+    width: 42px; height: 42px;
     border-radius: 50%;
     background: rgba(239, 229, 205, 0.94);
     border: 1px solid var(--ink-ghost);
     color: var(--vermillion-deep);
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     box-shadow: 0 4px 14px rgba(0,0,0,0.4);
     transition: all 0.2s;
     -webkit-tap-highlight-color: transparent;
   }
-  .nav-btn:hover, .nav-btn:active {
-    background: var(--paper);
-    transform: translateY(-2px);
-    border-color: var(--vermillion);
-  }
-  .nav-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-    transform: none;
-  }
+  .nav-btn:hover, .nav-btn:active { background: var(--paper); transform: translateY(-2px); border-color: var(--vermillion); }
+  .nav-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
   .nav-btn svg { width: 18px; height: 18px; }
-
   .page-indicator {
     font-family: 'Special Elite', monospace;
     font-size: 10px;
@@ -1153,87 +907,54 @@
     -webkit-backdrop-filter: blur(4px);
   }
 
-  /* ========== AUDIO BUTTONS ========== */
+  /* audio */
   .audio-panel {
-    position: fixed;
-    top: 14px;
-    right: 14px;
-    z-index: 100;
-    display: flex;
-    gap: 8px;
+    position: fixed; top: 14px; right: 14px;
+    z-index: 100; display: flex; gap: 8px;
   }
   .audio-btn {
-    width: 38px;
-    height: 38px;
+    width: 38px; height: 38px;
     border-radius: 50%;
     background: rgba(239, 229, 205, 0.94);
     border: 1px solid var(--ink-ghost);
     color: var(--vermillion-deep);
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
     box-shadow: 0 4px 14px rgba(0,0,0,0.4);
     transition: all 0.2s;
     -webkit-tap-highlight-color: transparent;
   }
-  .audio-btn:hover, .audio-btn:active {
-    background: var(--paper);
-    transform: scale(1.05);
-    border-color: var(--vermillion);
-  }
+  .audio-btn:hover, .audio-btn:active { background: var(--paper); transform: scale(1.05); border-color: var(--vermillion); }
   .audio-btn.active {
     background: var(--vermillion-deep);
     color: var(--paper);
     border-color: var(--vermillion-deep);
     box-shadow: 0 4px 16px rgba(168, 46, 26, 0.5);
   }
-  .audio-btn svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 2;
-  }
+  .audio-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-  /* reading indicator */
   .reading-indicator {
     position: fixed;
-    bottom: 70px;
-    left: 50%;
+    bottom: 70px; left: 50%;
     transform: translateX(-50%);
     background: rgba(42, 24, 12, 0.92);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--vermillion);
     border-radius: 22px;
     padding: 8px 18px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    opacity: 0;
-    visibility: hidden;
+    display: flex; align-items: center; gap: 10px;
+    opacity: 0; visibility: hidden;
     transition: all 0.3s ease;
     z-index: 99;
   }
   .reading-indicator.visible { opacity: 1; visibility: visible; }
   .waves { display: flex; align-items: center; gap: 2px; height: 14px; }
-  .wave {
-    width: 2px;
-    height: 100%;
-    background: var(--ember);
-    border-radius: 1px;
-    animation: wave 0.85s ease-in-out infinite;
-  }
+  .wave { width: 2px; height: 100%; background: var(--ember); border-radius: 1px; animation: wave 0.85s ease-in-out infinite; }
   .wave:nth-child(2) { animation-delay: 0.1s; }
   .wave:nth-child(3) { animation-delay: 0.2s; }
   .wave:nth-child(4) { animation-delay: 0.3s; }
-  @keyframes wave {
-    0%, 100% { transform: scaleY(0.4); }
-    50%      { transform: scaleY(1); }
-  }
+  @keyframes wave { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
   .reading-indicator span {
     font-family: 'Special Elite', monospace;
     font-size: 9px;
@@ -1242,35 +963,136 @@
     text-transform: uppercase;
   }
   .reading-indicator .stop-btn {
-    background: none;
-    border: none;
+    background: none; border: none; color: var(--ember); cursor: pointer; padding: 2px;
+    display: flex; align-items: center;
+  }
+
+  /* ========== LEAFLET MAP ========== */
+  .map-container {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    border-radius: 2px;
+    overflow: hidden;
+    border: 1px solid rgba(122, 98, 64, 0.3);
+  }
+  .leaflet-container {
+    background: var(--paper-warm) !important;
+    font-family: 'EB Garamond', serif !important;
+  }
+  /* sepia filter for OSM tiles → field-journal feel */
+  .leaflet-tile {
+    filter: sepia(70%) contrast(0.92) brightness(1.1) saturate(1.1) hue-rotate(-8deg);
+  }
+  .leaflet-popup-content-wrapper {
+    background: var(--paper);
+    border: 1px solid var(--ink-faint);
+    border-radius: 3px;
+    box-shadow: 2px 3px 8px rgba(60, 40, 20, 0.4);
+    color: var(--ink);
+  }
+  .leaflet-popup-content { font-family: 'EB Garamond', serif; font-size: 13px; margin: 8px 12px; }
+  .leaflet-popup-content strong { font-family: 'Cinzel', serif; color: var(--vermillion-deep); }
+  .leaflet-popup-tip { background: var(--paper); }
+  .map-pin {
+    background: none !important;
+    border: none !important;
+  }
+  .map-pin-inner {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    color: var(--paper);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    border: 2px solid var(--paper);
+  }
+  .map-pin.etna .map-pin-inner {
+    background: radial-gradient(circle at 35% 30%, var(--rust), var(--vermillion-deep));
+    width: 28px; height: 28px;
+    font-size: 14px;
+    animation: pinPulse 2.5s ease-in-out infinite;
+  }
+  .map-pin.tao .map-pin-inner {
+    background: radial-gradient(circle at 35% 30%, var(--sage), var(--sage-deep));
+    width: 22px; height: 22px;
+    font-size: 11px;
+  }
+  .map-pin.cat .map-pin-inner {
+    background: var(--ink);
+    width: 12px; height: 12px;
+    font-size: 0;
+  }
+  @keyframes pinPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(168, 46, 26, 0.5); }
+    50% { box-shadow: 0 0 0 10px rgba(168, 46, 26, 0); }
+  }
+  .map-attribution {
+    position: absolute;
+    bottom: 4px; right: 6px;
+    font-family: 'Special Elite', monospace;
+    font-size: 8px;
+    color: var(--ink-faint);
+    background: rgba(239, 229, 205, 0.8);
+    padding: 1px 4px;
+    border-radius: 2px;
+    z-index: 500;
+  }
+  .map-attribution a { color: inherit; }
+
+  /* ========== D3 ========== */
+  .d3-tooltip {
+    position: fixed;
+    background: rgba(42, 24, 12, 0.95);
+    color: var(--paper);
+    border: 1px solid var(--vermillion);
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-family: 'EB Garamond', serif;
+    font-size: 12px;
+    line-height: 1.4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    max-width: 220px;
+    z-index: 200;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .d3-tooltip.visible { opacity: 1; }
+  .d3-tooltip strong {
+    font-family: 'Cinzel', serif;
     color: var(--ember);
-    cursor: pointer;
-    padding: 2px;
-    display: flex;
-    align-items: center;
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  .d3-tooltip .d3-meta {
+    font-family: 'Special Elite', monospace;
+    font-size: 9px;
+    color: var(--ember);
+    letter-spacing: 0.15em;
   }
 
-  @keyframes glow {
-    0%, 100% { opacity: 0.5; }
-    50%      { opacity: 1; }
+  .d3-axis text {
+    font-family: 'Special Elite', monospace !important;
+    font-size: 9px !important;
+    fill: var(--ink-faint) !important;
+    letter-spacing: 0.1em;
   }
-  .glow-anim { animation: glow 3s ease-in-out infinite; transform-origin: center; }
+  .d3-axis path, .d3-axis line { stroke: var(--ink-faint); }
 
-  @keyframes smokePuff {
-    0%   { opacity: 0.55; transform: translateY(0); }
-    50%  { opacity: 0.35; transform: translateY(-3px); }
-    100% { opacity: 0.55; transform: translateY(0); }
-  }
-  .smoke-anim { animation: smokePuff 6s ease-in-out infinite; transform-origin: bottom center; }
+  .timeline-svg, .profile-svg { width: 100%; height: auto; display: block; }
 
   @media (max-height: 700px) {
-    .cover-title { font-size: 36px; }
-    .cover-second { font-size: 18px; }
+    .cover-title { font-size: 30px; }
+    .cover-second { font-size: 14px; }
     .display-title { font-size: 24px; }
     .body { font-size: 13.5px; }
     .page-inner { padding: 22px 20px 50px 34px; }
     .ruled-margin { left: 26px; }
+    .volcano-3d { height: 180px; }
   }
   @media (min-width: 768px) {
     .book { max-width: 540px; max-height: 880px; }
@@ -1279,7 +1101,10 @@
 </head>
 <body>
 
-<!-- Audio Controls -->
+<!-- ambient particles (tsParticles) -->
+<div id="tsparticles"></div>
+
+<!-- audio -->
 <div class="audio-panel">
   <button class="audio-btn" id="ambientBtn" title="Volcanic ambience">
     <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -1289,16 +1114,21 @@
   </button>
 </div>
 
-<!-- Reading indicator -->
+<!-- reading indicator -->
 <div class="reading-indicator" id="readingIndicator">
-  <div class="waves">
-    <div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div>
-  </div>
-  <span>Reading</span>
-  <button class="stop-btn" onclick="stopTTS()">
+  <div class="waves" id="ttsWaves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div>
+  <span id="ttsStatus">Reading</span>
+  <button class="ind-btn" id="pauseBtn" type="button" onclick="togglePauseTTS()" aria-label="Pause / resume reading">
+    <svg id="pauseIcon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+    <svg id="playIcon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M7 4 L19 12 L7 20 Z"/></svg>
+  </button>
+  <button class="ind-btn stop-btn" type="button" onclick="stopTTS()" aria-label="Stop reading">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
   </button>
 </div>
+
+<!-- D3 tooltip -->
+<div class="d3-tooltip" id="d3Tooltip"></div>
 
 <div class="book">
   <div class="pages" id="pages">
@@ -1318,97 +1148,11 @@
             <div class="cover-sub">a Sicilian companion</div>
           </div>
 
-          <div class="cover-illustration">
-            <!-- Etna profile + Taormina cliff sketch -->
-            <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="vgrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#3a2817"/>
-                  <stop offset="100%" stop-color="#6b4d35"/>
-                </linearGradient>
-                <radialGradient id="craterC" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stop-color="#d8804a" stop-opacity="0.95"/>
-                  <stop offset="60%" stop-color="#a82e1a" stop-opacity="0.5"/>
-                  <stop offset="100%" stop-color="#a82e1a" stop-opacity="0"/>
-                </radialGradient>
-                <radialGradient id="smokeG" cx="50%" cy="80%" r="60%">
-                  <stop offset="0%" stop-color="#3a2817" stop-opacity="0.5"/>
-                  <stop offset="100%" stop-color="#3a2817" stop-opacity="0"/>
-                </radialGradient>
-              </defs>
-
-              <!-- smoke -->
-              <g class="smoke-anim">
-                <ellipse cx="158" cy="40" rx="44" ry="22" fill="url(#smokeG)"/>
-                <ellipse cx="148" cy="28" rx="28" ry="14" fill="url(#smokeG)" opacity="0.7"/>
-              </g>
-
-              <!-- distant clouds -->
-              <g opacity="0.4" stroke="#3a2817" stroke-width="0.4" fill="none">
-                <path d="M 30 50 Q 50 46 70 50"/>
-                <path d="M 220 35 Q 240 31 260 35"/>
-              </g>
-
-              <!-- Taormina cliff (left) -->
-              <g>
-                <path d="M 0 175 L 0 130 Q 14 122 26 124 L 38 132 L 52 130 L 56 138 L 50 145 L 46 165 L 0 175 Z"
-                  fill="url(#vgrad)" stroke="#1a1108" stroke-width="0.4"/>
-                <!-- theatre arc -->
-                <g stroke="#3a2817" stroke-width="0.5" fill="none" opacity="0.85">
-                  <path d="M 14 130 A 14 7 0 0 1 42 130"/>
-                  <path d="M 17 128 A 11 6 0 0 1 39 128"/>
-                  <path d="M 20 126 A 8 5 0 0 1 36 126"/>
-                </g>
-                <!-- stage columns -->
-                <g fill="#1a1108">
-                  <rect x="22" y="120" width="2" height="6"/>
-                  <rect x="27" y="118" width="2" height="8"/>
-                  <rect x="32" y="120" width="2" height="6"/>
-                </g>
-                <text x="28" y="138" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#a82e1a">TAORMINA</text>
-              </g>
-
-              <!-- Etna (right) -->
-              <g>
-                <!-- foothills behind -->
-                <path d="M 80 168 L 110 152 L 130 158 L 145 148 L 165 150 L 280 138 L 280 175 L 80 175 Z" fill="#3a2817" opacity="0.45"/>
-                <!-- main body -->
-                <path d="M 80 175 L 130 95 L 145 78 L 175 78 L 195 95 L 270 175 Z" fill="url(#vgrad)" stroke="#1a1108" stroke-width="0.5"/>
-                <!-- snow cap -->
-                <path d="M 130 95 L 145 78 L 175 78 L 195 95 L 188 102 L 175 96 L 165 102 L 155 96 L 145 102 L 138 98 Z"
-                  fill="#f5ecd5" opacity="0.92"/>
-                <!-- crater -->
-                <ellipse cx="160" cy="80" rx="14" ry="3" fill="#1a0d05"/>
-                <ellipse cx="160" cy="79" rx="11" ry="2" fill="#d8804a"/>
-                <circle cx="160" cy="80" r="22" fill="url(#craterC)" class="glow-anim"/>
-
-                <!-- ridge sketch lines -->
-                <g stroke="#1a1108" stroke-width="0.4" fill="none" opacity="0.55">
-                  <path d="M 100 170 Q 130 130 152 100"/>
-                  <path d="M 130 175 Q 150 140 158 100"/>
-                  <path d="M 220 170 Q 200 130 178 100"/>
-                  <path d="M 250 170 Q 220 130 192 100"/>
-                </g>
-
-                <!-- lava rivulet -->
-                <path d="M 158 82 Q 152 105 145 130 Q 140 150 132 170"
-                  fill="none" stroke="#a82e1a" stroke-width="1.4" stroke-linecap="round" opacity="0.85"/>
-                <path d="M 162 82 Q 168 110 174 138 Q 178 158 184 175"
-                  fill="none" stroke="#c45e34" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
-
-                <!-- annotation -->
-                <text x="160" y="68" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#a82e1a">3,357 M</text>
-                <line x1="160" y1="74" x2="160" y2="69" stroke="#a82e1a" stroke-width="0.5"/>
-              </g>
-
-              <!-- ground -->
-              <line x1="0" y1="175" x2="280" y2="175" stroke="#3a2817" stroke-width="0.5"/>
-              <!-- sea hint -->
-              <g opacity="0.55">
-                <path d="M 0 178 L 280 178" stroke="#6a8ba8" stroke-width="0.5" stroke-dasharray="3,2"/>
-                <path d="M 0 182 L 280 182" stroke="#6a8ba8" stroke-width="0.4" stroke-dasharray="5,3"/>
-              </g>
-            </svg>
+          <!-- Three.js 3D volcano -->
+          <div class="volcano-3d" id="volcano3d">
+            <span class="v3d-tag">Fig. I · live model</span>
+            <span class="v3d-readout" id="v3dReadout">3,357 m · 37.75°N</span>
+            <span class="v3d-hint">drag to rotate · pinch to zoom</span>
           </div>
 
           <div class="cover-bottom">
@@ -1427,8 +1171,8 @@
       <div class="ruled-page"></div>
       <div class="page-inner">
         <div class="page-header">
-          <span>Field Vol. IV</span>
-          <span>Index</span>
+          <span>Vol. IV</span>
+          <span>Index &amp; Map</span>
           <span class="pn-stamp">i</span>
         </div>
 
@@ -1441,87 +1185,16 @@
         <h2 class="display-title">INDEX</h2>
         <div class="script-sub">a route through Sicily</div>
 
-        <div class="toc-list" id="tocList">
-          <!-- populated by JS -->
-        </div>
+        <div class="toc-list" id="tocList"></div>
 
-        <!-- Field map of Sicily showing the two locations -->
+        <!-- Leaflet interactive map -->
         <div class="sketch-frame">
-          <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="sea" patternUnits="userSpaceOnUse" width="6" height="6">
-                <path d="M0 3 Q 1.5 1, 3 3 T 6 3" fill="none" stroke="#6a8ba8" stroke-width="0.4" opacity="0.55"/>
-              </pattern>
-            </defs>
-            <!-- sea -->
-            <rect width="320" height="200" fill="url(#sea)" opacity="0.7"/>
-
-            <!-- Sicily silhouette (very rough triangle) -->
-            <path d="M 30 90 Q 60 70 110 64 Q 170 58 220 70 Q 270 80 285 110 Q 290 130 270 150 Q 240 168 200 170 Q 160 170 130 165 Q 90 158 60 145 Q 35 130 30 110 Z"
-              fill="#e9dec3" stroke="#3a2817" stroke-width="0.7"/>
-
-            <!-- topographic shading -->
-            <g stroke="#3a2817" stroke-width="0.3" fill="none" opacity="0.35">
-              <path d="M 80 100 Q 130 88 200 92 Q 240 96 260 110"/>
-              <path d="M 90 115 Q 140 105 200 108 Q 235 112 255 122"/>
-              <path d="M 100 130 Q 150 120 200 125 Q 230 130 248 138"/>
-            </g>
-
-            <!-- Etna marker -->
-            <g transform="translate(225, 110)">
-              <circle r="12" fill="rgba(168,46,26,0.18)" class="glow-anim"/>
-              <circle r="6" fill="#a82e1a" stroke="#f5ecd5" stroke-width="1.2"/>
-              <text y="2" text-anchor="middle" font-family="Cinzel" font-size="6" font-weight="700" fill="#f5ecd5">E</text>
-              <text y="-15" text-anchor="middle" font-family="Special Elite" font-size="7" fill="#a82e1a">ETNA</text>
-              <text y="22" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#3a2817">3,357 m</text>
-            </g>
-
-            <!-- Taormina marker -->
-            <g transform="translate(258, 90)">
-              <circle r="5" fill="#7a8b6e" stroke="#f5ecd5" stroke-width="1"/>
-              <text y="1.5" text-anchor="middle" font-family="Cinzel" font-size="5" font-weight="700" fill="#f5ecd5">T</text>
-              <text y="-9" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#4f5e44">TAORMINA</text>
-            </g>
-
-            <!-- Catania marker (small, secondary) -->
-            <circle cx="240" cy="130" r="2.5" fill="#3a2817"/>
-            <text x="245" y="133" font-family="EB Garamond" font-style="italic" font-size="7" fill="#3a2817">Catania</text>
-
-            <!-- dotted route -->
-            <path d="M 240 130 L 225 110 L 258 90"
-              fill="none" stroke="#a82e1a" stroke-width="0.7" stroke-dasharray="2,2" opacity="0.7"/>
-
-            <!-- compass rose -->
-            <g transform="translate(40, 40)" opacity="0.85">
-              <circle r="13" fill="none" stroke="#3a2817" stroke-width="0.5"/>
-              <circle r="9" fill="none" stroke="#3a2817" stroke-width="0.4"/>
-              <polygon points="0,-12 -1.8,0 0,12 1.8,0" fill="#a82e1a"/>
-              <polygon points="-12,0 0,-1.8 12,0 0,1.8" fill="#3a2817" opacity="0.7"/>
-              <text y="-15" text-anchor="middle" font-family="Cinzel" font-size="6" fill="#3a2817">N</text>
-            </g>
-
-            <!-- scale -->
-            <g transform="translate(220, 188)" opacity="0.85">
-              <line x1="0" y1="0" x2="50" y2="0" stroke="#3a2817" stroke-width="0.8"/>
-              <line x1="0" y1="-3" x2="0" y2="3" stroke="#3a2817" stroke-width="0.8"/>
-              <line x1="50" y1="-3" x2="50" y2="3" stroke="#3a2817" stroke-width="0.8"/>
-              <text x="25" y="-5" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#3a2817">30 KM</text>
-            </g>
-
-            <!-- sea label -->
-            <text x="20" y="170" font-family="Italianno" font-size="18" fill="#4a6585" opacity="0.7">il Mare Ionio</text>
-
-            <!-- title cartouche -->
-            <g transform="translate(160, 22)" opacity="0.9">
-              <text text-anchor="middle" font-family="Cinzel" font-size="9" letter-spacing="2" fill="#3a2817">SICILIA · ORIENTALE</text>
-              <line x1="-46" y1="4" x2="-12" y2="4" stroke="#b8893a" stroke-width="0.5"/>
-              <line x1="12" y1="4" x2="46" y2="4" stroke="#b8893a" stroke-width="0.5"/>
-            </g>
-          </svg>
-          <div class="sketch-caption"><span class="fig">Fig. 1</span> the eastern coast of Sicily</div>
+          <div class="map-container">
+            <div class="frame-target" id="sicilyMap" style="height: 220px;"></div>
+            <div class="map-attribution">tiles · OSM · sepia</div>
+          </div>
+          <div class="sketch-caption"><span class="fig">Fig. 1</span> eastern Sicily · tap markers</div>
         </div>
-
-        <p class="margin-note no-arrow" style="top: 240px; left: 4px; width: 24px; transform: rotate(-90deg) translateX(-100%); transform-origin: top left; font-size: 11px; letter-spacing: 0.2em;">VOL · IV</p>
 
         <div class="page-footer">
           <span>•</span>
@@ -1533,7 +1206,7 @@
       </div>
     </div>
 
-    <!-- ========== ETNA I — THE MOUNTAIN ========== -->
+    <!-- ========== ETNA I ========== -->
     <div class="page" data-page="2">
       <div class="ruled-margin"></div>
       <div class="ruled-page"></div>
@@ -1566,22 +1239,10 @@
         </div>
 
         <div class="stat-grid">
-          <div class="stat-cell">
-            <div class="stat-val">3,357 m</div>
-            <div class="stat-lbl">Elevation</div>
-          </div>
-          <div class="stat-cell">
-            <div class="stat-val">~1,200 km²</div>
-            <div class="stat-lbl">Surface</div>
-          </div>
-          <div class="stat-cell">
-            <div class="stat-val">4</div>
-            <div class="stat-lbl">Summit Craters</div>
-          </div>
-          <div class="stat-cell">
-            <div class="stat-val">UNESCO</div>
-            <div class="stat-lbl">since 2013</div>
-          </div>
+          <div class="stat-cell"><div class="stat-val">3,357 m</div><div class="stat-lbl">Elevation</div></div>
+          <div class="stat-cell"><div class="stat-val">~1,200 km²</div><div class="stat-lbl">Surface</div></div>
+          <div class="stat-cell"><div class="stat-val">4</div><div class="stat-lbl">Summit Craters</div></div>
+          <div class="stat-cell"><div class="stat-val">UNESCO</div><div class="stat-lbl">since 2013</div></div>
         </div>
 
         <div class="quote">
@@ -1609,7 +1270,7 @@
       </div>
     </div>
 
-    <!-- ========== ETNA II — GEOLOGY & ERUPTIONS ========== -->
+    <!-- ========== ETNA II — D3 timeline ========== -->
     <div class="page" data-page="3">
       <div class="ruled-margin"></div>
       <div class="ruled-page"></div>
@@ -1623,118 +1284,33 @@
         <div class="eyebrow">Chapter the Second</div>
         <h2 class="display-title">FIRE BENEATH</h2>
         <div class="script-sub">la fornace della terra</div>
-        <div class="meta-line">a chronology of recent activity</div>
+        <div class="meta-line">a chronology of recent activity · hover the bars</div>
 
-        <!-- Cross section sketch -->
+        <!-- D3 eruption timeline -->
         <div class="sketch-frame">
-          <svg viewBox="0 0 320 170" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <radialGradient id="magma" cx="50%" cy="65%" r="40%">
-                <stop offset="0%" stop-color="#f0c060" stop-opacity="1"/>
-                <stop offset="40%" stop-color="#d8602a" stop-opacity="0.95"/>
-                <stop offset="100%" stop-color="#5a1a08" stop-opacity="1"/>
-              </radialGradient>
-              <linearGradient id="crust" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#3a2817"/>
-                <stop offset="100%" stop-color="#1a1108"/>
-              </linearGradient>
-            </defs>
-
-            <!-- mountain cross-section -->
-            <path d="M 10 160 L 100 60 L 130 38 L 142 30 L 178 30 L 192 38 L 220 60 L 310 160 Z"
-              fill="url(#crust)" stroke="#1a1108" stroke-width="0.6"/>
-
-            <!-- snow rim -->
-            <path d="M 100 60 L 130 38 L 142 30 L 152 36 L 160 30 L 170 36 L 178 30 L 192 38 L 220 60 L 212 64 L 196 56 L 184 60 L 174 54 L 160 60 L 146 54 L 134 60 L 116 54 Z"
-              fill="#f5ecd5" opacity="0.92"/>
-
-            <!-- crater (cut-away) -->
-            <path d="M 142 30 L 168 100 L 178 100 L 192 38 L 220 60 L 198 130 Q 178 142 158 130 L 130 38 Z"
-              fill="#0e0805"/>
-
-            <!-- magma chamber -->
-            <ellipse cx="178" cy="130" rx="32" ry="14" fill="url(#magma)" class="glow-anim"/>
-            <ellipse cx="178" cy="130" rx="44" ry="20" fill="#d8602a" opacity="0.18" class="glow-anim"/>
-
-            <!-- conduit -->
-            <path d="M 168 100 Q 172 116 174 130 M 188 100 Q 184 116 182 130"
-              fill="none" stroke="#d8602a" stroke-width="2" opacity="0.7"/>
-
-            <!-- strata layers -->
-            <g stroke="#a82e1a" stroke-width="0.4" fill="none" opacity="0.45">
-              <path d="M 30 145 Q 60 140 90 138 M 230 138 Q 260 140 290 145"/>
-              <path d="M 30 130 Q 70 122 100 120 M 220 120 Q 250 122 290 130"/>
-              <path d="M 40 115 Q 80 105 105 100 M 215 100 Q 240 105 280 115"/>
-              <path d="M 60 95 Q 90 85 110 80 M 210 80 Q 230 85 260 95"/>
-            </g>
-
-            <!-- bubbles -->
-            <circle cx="170" cy="118" r="1.6" fill="#f0c060" class="glow-anim"/>
-            <circle cx="184" cy="112" r="1.2" fill="#d8602a" class="glow-anim" style="animation-delay:0.5s;"/>
-            <circle cx="178" cy="106" r="1.4" fill="#f0c060" class="glow-anim" style="animation-delay:1s;"/>
-
-            <!-- smoke -->
-            <g class="smoke-anim" opacity="0.5">
-              <ellipse cx="160" cy="20" rx="34" ry="8" fill="#3a2817"/>
-              <ellipse cx="170" cy="14" rx="22" ry="6" fill="#3a2817"/>
-            </g>
-
-            <!-- annotations with lines -->
-            <g font-family="Special Elite" font-size="7" fill="#a82e1a">
-              <line x1="220" y1="62" x2="262" y2="48" stroke="#a82e1a" stroke-width="0.4"/>
-              <text x="266" y="50">RIM · 2900 m</text>
-
-              <line x1="178" y1="118" x2="280" y2="105" stroke="#a82e1a" stroke-width="0.4"/>
-              <text x="282" y="108">MAGMA</text>
-
-              <line x1="100" y1="110" x2="42" y2="98" stroke="#a82e1a" stroke-width="0.4"/>
-              <text x="6" y="98">STRATA</text>
-
-              <line x1="178" y1="38" x2="178" y2="14" stroke="#a82e1a" stroke-width="0.4"/>
-              <text x="178" y="9" text-anchor="middle">VENT</text>
-            </g>
-          </svg>
-          <div class="sketch-caption"><span class="fig">Fig. 2</span> cross-section of the central conduit</div>
+          <div class="frame-target" id="eruptionTimeline" style="min-height: 220px;"></div>
+          <div class="sketch-caption"><span class="fig">Fig. 2</span> notable eruptions · 1500–2025 · scale = VEI</div>
         </div>
+
+        <p class="margin-note right" style="top: 200px;">"a tongue of fire" — Pliny, A.D. 79</p>
 
         <div class="section-head">
           <span class="num">i</span>
-          <span class="label">Notable Eruptions</span>
+          <span class="label">A Note on Type</span>
         </div>
 
-        <div class="timeline">
-          <div class="t-item">
-            <div class="t-year">1669</div>
-            <div class="t-event">The Great Catania Flow</div>
-            <div class="t-desc">Lava reached the Ionian Sea and engulfed parts of Catania. The walls of Castello Ursino, once seaside, are now <em>half a mile inland</em>.</div>
-          </div>
-          <div class="t-item">
-            <div class="t-year">1928</div>
-            <div class="t-event">Mascali</div>
-            <div class="t-desc">An entire town was buried in three days. Mussolini watched the destruction from a nearby hill.</div>
-          </div>
-          <div class="t-item">
-            <div class="t-year">1971</div>
-            <div class="t-event">Loss of the Old Observatory</div>
-            <div class="t-desc">Lava destroyed the original 19th-century vulcanological observatory at the summit.</div>
-          </div>
-          <div class="t-item">
-            <div class="t-year">2002–03</div>
-            <div class="t-event">The Tourist Station Flow</div>
-            <div class="t-desc">Lava destroyed cable car pylons and chalets at Rifugio Sapienza. The black scar is still visible.</div>
-          </div>
-          <div class="t-item">
-            <div class="t-year">2021–24</div>
-            <div class="t-event">The Southeast Crater Surges</div>
-            <div class="t-desc">A series of paroxysms added <em>~30 m</em> of new height. Etna is, briefly, the tallest she has ever been.</div>
-          </div>
-        </div>
+        <div class="body">
+          <p>Etna is a <strong>composite stratovolcano</strong> — built up over half a million years from alternating layers of lava, ash, and tephra. Her relative gentleness comes from <em>basaltic</em> magma: hot, fluid, low in silica, and content to flow rather than detonate.</p>
 
-        <p class="margin-note right" style="top: 90px;">"a tongue of fire" — Pliny, A.D. 79</p>
+          <p>The Volcanic Explosivity Index (VEI) on the chart above runs from 0 (effusive) to 8 (cataclysmic). Most of Etna's eruptions sit at <em>2 or 3</em>. Even her worst fits of temper produce slow rivers of lava, not pyroclastic clouds.</p>
+        </div>
 
         <div class="info-panel">
-          <div class="info-panel-title">A Note on Type</div>
-          <p>Etna is a <strong>composite stratovolcano</strong> — built up over half a million years from alternating layers of lava, ash, and tephra. Her relative gentleness comes from <em>basaltic</em> magma: hot, fluid, low in silica, and content to flow rather than detonate.</p>
+          <div class="info-panel-title">Notable Episodes</div>
+          <p><strong>1669 · Catania</strong> — lava reached the Ionian Sea, swallowed villages, fused the harbour.</p>
+          <p><strong>1928 · Mascali</strong> — an entire town buried in three days.</p>
+          <p><strong>2002 · Sapienza</strong> — destroyed cable car pylons; still visible as a black scar.</p>
+          <p><strong>2021–24 · Southeast Crater</strong> — paroxysms added <em>~30 m</em> of new height.</p>
         </div>
 
         <div class="page-footer">
@@ -1747,7 +1323,7 @@
       </div>
     </div>
 
-    <!-- ========== ETNA III — THE ASCENT ========== -->
+    <!-- ========== ETNA III — D3 altitude profile ========== -->
     <div class="page" data-page="4">
       <div class="ruled-margin"></div>
       <div class="ruled-page"></div>
@@ -1761,71 +1337,12 @@
         <div class="eyebrow">Chapter the Third</div>
         <h2 class="display-title">UPON THE SLOPES</h2>
         <div class="script-sub">l'ascesa</div>
-        <div class="meta-line">1,900 m → 2,500 m → summit · half day</div>
+        <div class="meta-line">1,900 m → 2,500 m → summit · half day · interactive</div>
 
-        <!-- Altitude profile -->
+        <!-- D3 interactive altitude profile -->
         <div class="sketch-frame">
-          <svg viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="profGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#a82e1a" stop-opacity="0.32"/>
-                <stop offset="100%" stop-color="#a82e1a" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-
-            <!-- elevation grid -->
-            <g stroke="#3a2817" stroke-width="0.3" fill="none" opacity="0.35" stroke-dasharray="2,2">
-              <line x1="0" y1="20" x2="320" y2="20"/>
-              <line x1="0" y1="50" x2="320" y2="50"/>
-              <line x1="0" y1="80" x2="320" y2="80"/>
-              <line x1="0" y1="110" x2="320" y2="110"/>
-            </g>
-
-            <!-- elevation labels -->
-            <g font-family="Special Elite" font-size="6" fill="#7a6240">
-              <text x="2" y="22">3500</text>
-              <text x="2" y="52">2500</text>
-              <text x="2" y="82">1500</text>
-              <text x="2" y="112">500</text>
-            </g>
-
-            <!-- Etna profile from sea to summit and down to plain -->
-            <path d="M 30 113 L 60 110 L 90 95 L 130 65 L 175 28 L 220 60 L 260 100 L 300 115 L 300 120 L 30 120 Z" fill="url(#profGrad)"/>
-            <path d="M 30 113 L 60 110 L 90 95 L 130 65 L 175 28 L 220 60 L 260 100 L 300 115"
-              fill="none" stroke="#a82e1a" stroke-width="1.4" stroke-linecap="round"/>
-
-            <!-- waypoint dots -->
-            <g>
-              <!-- Catania -->
-              <circle cx="60" cy="110" r="3" fill="#3a2817"/>
-              <text x="60" y="124" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#3a2817">CATANIA</text>
-              <text x="60" y="103" text-anchor="middle" font-family="EB Garamond" font-style="italic" font-size="7" fill="#7a6240">7m</text>
-
-              <!-- Rifugio -->
-              <circle cx="130" cy="65" r="3" fill="#a82e1a"/>
-              <text x="130" y="124" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#a82e1a">RIFUGIO</text>
-              <text x="130" y="58" text-anchor="middle" font-family="EB Garamond" font-style="italic" font-size="7" fill="#a82e1a">1900m</text>
-
-              <!-- Cable top -->
-              <circle cx="155" cy="44" r="3" fill="#a82e1a"/>
-              <text x="155" y="124" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#a82e1a">CABLE</text>
-              <text x="155" y="37" text-anchor="middle" font-family="EB Garamond" font-style="italic" font-size="7" fill="#a82e1a">2500m</text>
-
-              <!-- Summit -->
-              <circle cx="175" cy="28" r="4" fill="#f0c060" stroke="#a82e1a" stroke-width="1"/>
-              <text x="175" y="124" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#a82e1a">SUMMIT</text>
-              <text x="175" y="20" text-anchor="middle" font-family="Cinzel" font-size="7" font-weight="700" fill="#a82e1a">3357m</text>
-
-              <!-- Taormina -->
-              <circle cx="260" cy="100" r="3" fill="#7a8b6e"/>
-              <text x="260" y="124" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#4f5e44">TAORMINA</text>
-              <text x="260" y="93" text-anchor="middle" font-family="EB Garamond" font-style="italic" font-size="7" fill="#4f5e44">200m</text>
-            </g>
-
-            <!-- ground baseline -->
-            <line x1="0" y1="120" x2="320" y2="120" stroke="#3a2817" stroke-width="0.5"/>
-          </svg>
-          <div class="sketch-caption"><span class="fig">Fig. 3</span> profile of an ascent · sea to summit</div>
+          <div class="frame-target" id="altitudeProfile" style="min-height: 200px;"></div>
+          <div class="sketch-caption"><span class="fig">Fig. 3</span> altitude profile · drag the cursor</div>
         </div>
 
         <p class="lead">
@@ -1844,9 +1361,9 @@
 
         <div class="info-panel">
           <div class="info-panel-title">Logistics, in brief</div>
-          <p><strong>Cable car only:</strong> ~€35 round trip · operates 09:00–16:30</p>
+          <p><strong>Cable car only:</strong> ~€35 round trip · 09:00–16:30</p>
           <p><strong>With 4×4 + guide:</strong> ~€70 (recommended for craters)</p>
-          <p><strong>Time required:</strong> half a day from Rifugio · full day from Catania or Taormina</p>
+          <p><strong>Time required:</strong> half day from Rifugio · full day from Catania or Taormina</p>
         </div>
 
         <p class="margin-note right" style="top: 470px;">bring layers — 15° colder up top!</p>
@@ -1864,7 +1381,7 @@
 
         <div class="info-panel">
           <div class="info-panel-title">Important · Read Twice</div>
-          <p>Summit access may close <strong>without notice</strong> due to volcanic activity. Authorised guides monitor conditions constantly. Verify status at <strong>Funivia dell'Etna</strong> or <strong>INGV Catania</strong> (the Italian National Institute of Geophysics) before setting out.</p>
+          <p>Summit access may close <strong>without notice</strong> due to volcanic activity. Authorised guides monitor conditions constantly. Verify status at <strong>Funivia dell'Etna</strong> or <strong>INGV Catania</strong> before setting out.</p>
         </div>
 
         <div class="page-footer">
@@ -1877,7 +1394,7 @@
       </div>
     </div>
 
-    <!-- ========== ETNA IV — AROUND THE SLOPES ========== -->
+    <!-- ========== ETNA IV ========== -->
     <div class="page" data-page="5">
       <div class="ruled-margin"></div>
       <div class="ruled-page"></div>
@@ -1944,14 +1461,14 @@
         </div>
 
         <div class="body">
-          <p>A narrow-gauge train circles the volcano in three slow hours, from <em>Catania Borgo</em> to <em>Riposto</em> via Randazzo. It passes through lava fields, chestnut groves, blood-orange orchards and almond terraces. There are few finer ways to spend a Sicilian morning.</p>
+          <p>A narrow-gauge train circles the volcano in three slow hours, from <em>Catania Borgo</em> to <em>Riposto</em> via Randazzo. It passes through lava fields, chestnut groves, blood-orange orchards and almond terraces.</p>
         </div>
 
         <div class="info-panel">
           <div class="info-panel-title">Field Notes · A Local Plate</div>
-          <p><strong>Pasta alla Norma</strong> — eggplant, ricotta salata, basil. Named for Bellini's opera; born in Catania.</p>
+          <p><strong>Pasta alla Norma</strong> — eggplant, ricotta salata, basil. Born in Catania.</p>
           <p><strong>Pistachio everything</strong> — pesto, gelato, biscotti, sausage. Bronte, naturally.</p>
-          <p><strong>Granita con brioche</strong> — almond or pistachio, eaten for breakfast. Always for breakfast.</p>
+          <p><strong>Granita con brioche</strong> — almond or pistachio, eaten for breakfast.</p>
         </div>
 
         <div class="page-footer">
@@ -1964,7 +1481,7 @@
       </div>
     </div>
 
-    <!-- ========== TAORMINA I — THE BALCONY ========== -->
+    <!-- ========== TAORMINA I ========== -->
     <div class="page" data-page="6">
       <div class="ruled-margin"></div>
       <div class="ruled-page"></div>
@@ -1980,7 +1497,7 @@
         <div class="script-sub">il balcone di Sicilia</div>
         <div class="meta-line">cliffside · 200 m above the Ionian sea</div>
 
-        <!-- Greek theatre with Etna behind -->
+        <!-- Greek theatre + Etna sketch -->
         <div class="sketch-frame">
           <svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -1993,39 +1510,28 @@
                 <stop offset="100%" stop-color="#a82e1a" stop-opacity="0"/>
               </radialGradient>
             </defs>
-
-            <!-- distant Etna -->
             <g opacity="0.92">
               <path d="M 180 100 L 240 35 L 254 30 L 270 35 L 320 100 L 320 110 L 180 110 Z" fill="#3a2817" opacity="0.7"/>
               <path d="M 240 35 L 254 30 L 270 35 L 264 40 L 254 36 L 246 40 Z" fill="#f5ecd5" opacity="0.7"/>
               <ellipse cx="256" cy="35" rx="6" ry="1.5" fill="#0e0805"/>
-              <circle cx="256" cy="35" r="2.5" fill="#a82e1a" opacity="0.7" class="glow-anim"/>
-              <circle cx="256" cy="35" r="10" fill="url(#taoCrater)" class="glow-anim"/>
-              <ellipse cx="256" cy="22" rx="13" ry="5" fill="#3a2817" opacity="0.4" class="smoke-anim"/>
+              <circle cx="256" cy="35" r="2.5" fill="#a82e1a" opacity="0.7"/>
+              <circle cx="256" cy="35" r="10" fill="url(#taoCrater)"/>
+              <ellipse cx="256" cy="22" rx="13" ry="5" fill="#3a2817" opacity="0.4"/>
               <text x="256" y="14" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#a82e1a">ETNA</text>
             </g>
-
-            <!-- sea -->
             <rect x="0" y="100" width="320" height="60" fill="#a8b9c8" opacity="0.32"/>
             <g stroke="#6a8ba8" stroke-width="0.4" fill="none" opacity="0.6">
               <path d="M 0 110 Q 30 108 60 110 T 320 112" stroke-dasharray="4,3"/>
               <path d="M 0 122 Q 40 120 80 122 T 320 124" stroke-dasharray="6,4"/>
               <path d="M 0 138 Q 50 136 100 138 T 320 140" stroke-dasharray="3,2"/>
             </g>
-
-            <!-- Isola Bella -->
             <ellipse cx="100" cy="128" rx="20" ry="4" fill="#3a2817"/>
             <path d="M 80 128 Q 92 118 100 116 Q 110 116 120 128 Z" fill="#5a4222"/>
             <circle cx="96" cy="121" r="1.5" fill="#7a8b6e"/>
             <circle cx="104" cy="120" r="1.2" fill="#7a8b6e"/>
             <text x="100" y="148" text-anchor="middle" font-family="Italianno" font-size="14" fill="#4a6585" opacity="0.85">Isola Bella</text>
-
-            <!-- cliff with Greek theatre -->
             <g transform="translate(40, 56)">
-              <!-- cliff -->
-              <path d="M -40 50 L -28 28 L 0 22 L 78 18 L 96 26 L 112 50 Z"
-                fill="url(#taoStone)" stroke="#1a1108" stroke-width="0.4"/>
-              <!-- theatre arc tiers -->
+              <path d="M -40 50 L -28 28 L 0 22 L 78 18 L 96 26 L 112 50 Z" fill="url(#taoStone)" stroke="#1a1108" stroke-width="0.4"/>
               <g stroke="#3a2817" stroke-width="0.7" fill="none" opacity="0.9">
                 <path d="M 0 38 A 30 14 0 0 1 60 38"/>
                 <path d="M 4 35 A 26 12 0 0 1 56 35"/>
@@ -2033,7 +1539,6 @@
                 <path d="M 12 29 A 18 8 0 0 1 48 29"/>
                 <path d="M 16 26 A 14 6 0 0 1 44 26"/>
               </g>
-              <!-- stage columns -->
               <g fill="#1a1108">
                 <rect x="14" y="22" width="2.5" height="5"/>
                 <rect x="22" y="20" width="2.5" height="7"/>
@@ -2041,9 +1546,7 @@
                 <rect x="38" y="20" width="2.5" height="7"/>
                 <rect x="46" y="22" width="2.5" height="5"/>
               </g>
-              <!-- ruined wall -->
               <path d="M 12 22 L 12 18 L 18 18 L 18 16 L 26 16 L 26 14 L 36 14 L 36 16 L 42 16 L 42 18 L 50 18 L 50 22 Z" fill="#3a2817" stroke="#1a1108" stroke-width="0.3"/>
-              <!-- annotation -->
               <line x1="32" y1="14" x2="32" y2="2" stroke="#a82e1a" stroke-width="0.4"/>
               <text x="32" y="-2" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#a82e1a">TEATRO ANTICO</text>
             </g>
@@ -2086,7 +1589,7 @@
       </div>
     </div>
 
-    <!-- ========== TAORMINA II — A WALKING TOUR ========== -->
+    <!-- ========== TAORMINA II ========== -->
     <div class="page" data-page="7">
       <div class="ruled-margin"></div>
       <div class="ruled-page"></div>
@@ -2158,7 +1661,7 @@
           <div class="loc-desc">
             A ten-minute drive (or a steep, lovely walk) above Taormina. A handful of stone streets, a ruined castle, and the most complete view of Etna and the coast you will see from anywhere — sea on one side, volcano on the other.
           </div>
-          <div class="loc-tip">try the almond wine at Bar Turrisi — the décor is, ahem, anatomical</div>
+          <div class="loc-tip">try the almond wine at Bar Turrisi</div>
         </div>
 
         <span class="specimen-tag">PRESSED · genista aetnensis · Castelmola, June</span>
@@ -2167,7 +1670,7 @@
           <div class="info-panel-title">When to Walk</div>
           <p><strong>Early morning</strong> — Corso Umberto belongs to locals; the theatre is empty.</p>
           <p><strong>Sunset</strong> — Piazza IX Aprile glows pink, Etna turns rose, the lights of the coast switch on one by one.</p>
-          <p><strong>Avoid</strong> July afternoons — the cruise ships disgorge and Corso Umberto becomes a slow-moving river.</p>
+          <p><strong>Avoid</strong> July afternoons — cruise ships disgorge and Corso Umberto becomes a slow-moving river.</p>
         </div>
 
         <div class="page-footer">
@@ -2202,9 +1705,9 @@
         </div>
 
         <div class="body">
-          <p><strong>To Etna:</strong> from Catania, take the A18 then the SP92 to <em>Rifugio Sapienza</em> (~1 h). AST buses run from Piazza Papa Giovanni XXIII once a day; service is limited off-season.</p>
-          <p><strong>To Taormina:</strong> Catania to Taormina by train (~50 min) or by car along the A18 (~45 min). The station is at sea level — take the local bus or funivia up to the town.</p>
-          <p><strong>Combined day:</strong> stay in Taormina, take a guided full-day Etna excursion. Many operators include transport, guide, and crater access.</p>
+          <p><strong>To Etna:</strong> from Catania, take the A18 then the SP92 to <em>Rifugio Sapienza</em> (~1 h). AST buses run from Piazza Papa Giovanni XXIII once a day.</p>
+          <p><strong>To Taormina:</strong> Catania to Taormina by train (~50 min) or by car along the A18 (~45 min).</p>
+          <p><strong>Combined:</strong> stay in Taormina, take a guided full-day Etna excursion.</p>
         </div>
 
         <div class="section-head">
@@ -2213,10 +1716,10 @@
         </div>
 
         <ul class="feat-list">
-          <li><strong>Spring · Apr–Jun</strong> — wildflowers on the lower slopes, snow on the summit. Mild, fewer crowds.</li>
-          <li><strong>Summer · Jul–Sep</strong> — peak season. Best summit access. Book the cable car early.</li>
+          <li><strong>Spring · Apr–Jun</strong> — wildflowers, snow on the summit. Mild, fewer crowds.</li>
+          <li><strong>Summer · Jul–Sep</strong> — peak season. Best summit access. Book early.</li>
           <li><strong>Autumn · Oct–Nov</strong> — grape and chestnut harvests. Weather variable.</li>
-          <li><strong>Winter · Dec–Mar</strong> — Etna becomes a ski resort. Rare to ski an active volcano with sea views.</li>
+          <li><strong>Winter · Dec–Mar</strong> — ski an active volcano. Sea views included.</li>
         </ul>
 
         <p class="margin-note" style="top: 380px;">May = best month, full stop</p>
@@ -2228,7 +1731,7 @@
 
         <ul class="feat-list">
           <li>Sturdy hiking shoes — volcanic rock is sharp.</li>
-          <li><strong>Layers</strong> — temperature drops ~6°C per 1,000 m of elevation.</li>
+          <li><strong>Layers</strong> — temperature drops ~6°C per 1,000 m.</li>
           <li>Wind-proof jacket — summit gusts can be ferocious.</li>
           <li>Sunglasses, sunscreen, water — UV at altitude is fierce.</li>
           <li>Long trousers — protection from scoria and sun.</li>
@@ -2236,9 +1739,9 @@
 
         <div class="info-panel">
           <div class="info-panel-title">Stay Connected</div>
-          <p><strong>INGV Catania</strong> · ct.ingv.it — real-time volcanic monitoring</p>
-          <p><strong>Funivia dell'Etna</strong> · funiviaetna.com — cable car &amp; weather</p>
-          <p><strong>Parco dell'Etna</strong> · parcoetna.it — park authority &amp; trails</p>
+          <p><strong>INGV Catania</strong> · ct.ingv.it — real-time monitoring</p>
+          <p><strong>Funivia dell'Etna</strong> · funiviaetna.com — cable car</p>
+          <p><strong>Parco dell'Etna</strong> · parcoetna.it — park authority</p>
         </div>
 
         <div class="quote">
@@ -2270,207 +1773,903 @@
 </div>
 
 <script>
-  // ========== TOC DATA ==========
-  const chapters = [
-    { num: 'I',   name: 'A Living Earth',          it: 'la Muntagna',          page: 2, fol: '1' },
-    { num: 'II',  name: 'Fire Beneath',            it: 'la fornace',           page: 3, fol: '2' },
-    { num: 'III', name: 'Upon the Slopes',         it: "l'ascesa",             page: 4, fol: '3' },
-    { num: 'IV',  name: 'Notes & Wanderings',      it: 'intorno al vulcano',   page: 5, fol: '4' },
-    { num: 'V',   name: 'Taormina · The Balcony',  it: 'il balcone',           page: 6, fol: '5' },
-    { num: 'VI',  name: 'A Walk along the Ridge',  it: 'passeggiata',          page: 7, fol: '6' },
-    { num: '—',   name: 'Field Notes',             it: 'note pratiche',        page: 8, fol: 'vii' }
+/* ============================================================
+   PART I — TOC + NAVIGATION (with GSAP-enhanced transitions)
+   ============================================================ */
+const chapters = [
+  { num: 'I',   name: 'A Living Earth',          it: 'la Muntagna',          page: 2, fol: '1' },
+  { num: 'II',  name: 'Fire Beneath',            it: 'la fornace',           page: 3, fol: '2' },
+  { num: 'III', name: 'Upon the Slopes',         it: "l'ascesa",             page: 4, fol: '3' },
+  { num: 'IV',  name: 'Notes & Wanderings',      it: 'intorno al vulcano',   page: 5, fol: '4' },
+  { num: 'V',   name: 'Taormina · The Balcony',  it: 'il balcone',           page: 6, fol: '5' },
+  { num: 'VI',  name: 'A Walk along the Ridge',  it: 'passeggiata',          page: 7, fol: '6' },
+  { num: '—',   name: 'Field Notes',             it: 'note pratiche',        page: 8, fol: 'vii' }
+];
+const tocList = document.getElementById('tocList');
+chapters.forEach(ch => {
+  const item = document.createElement('div');
+  item.className = 'toc-item';
+  item.dataset.target = ch.page;
+  item.innerHTML = `
+    <span class="toc-num">${ch.num}</span>
+    <span class="toc-name">${ch.name} <em>· ${ch.it}</em></span>
+    <span class="toc-dots"></span>
+    <span class="toc-page">${ch.fol}</span>
+  `;
+  item.addEventListener('click', () => goToPage(parseInt(item.dataset.target)));
+  tocList.appendChild(item);
+});
+
+let currentPage = 0;
+const totalPages = 9;
+
+function showPage(n, direction) {
+  const current = document.querySelector('.page.active');
+  const next = document.querySelector(`.page[data-page="${n}"]`);
+  if (!next || current === next) return;
+  next.querySelector('.page-inner')?.scrollTo({ top: 0 });
+  current.classList.remove('active');
+  current.classList.add(direction === 'next' ? 'leaving-right' : 'leaving-left');
+  next.classList.add('active');
+  // GSAP entrance flourish on key elements of the new page
+  if (window.gsap) {
+    gsap.from(next.querySelectorAll('.display-title, .script-sub, .meta-line, .lead'), {
+      opacity: 0, y: 12, duration: 0.6, stagger: 0.06, ease: 'power2.out', delay: 0.15
+    });
+    gsap.from(next.querySelectorAll('.sketch-frame, .info-panel, .stat-grid, .loc-card, .quote'), {
+      opacity: 0, y: 16, duration: 0.6, stagger: 0.08, ease: 'power2.out', delay: 0.25
+    });
+  }
+  setTimeout(() => current.classList.remove('leaving-right', 'leaving-left'), 650);
+  currentPage = n;
+  updateNav();
+  stopTTS();
+  onPageEnter(n);
+}
+function nextPage() { if (currentPage < totalPages - 1) showPage(currentPage + 1, 'next'); }
+function prevPage() { if (currentPage > 0) showPage(currentPage - 1, 'prev'); }
+function goToPage(n) { if (n !== currentPage) showPage(n, n > currentPage ? 'next' : 'prev'); }
+function updateNav() {
+  document.getElementById('prevBtn').disabled = currentPage === 0;
+  document.getElementById('nextBtn').disabled = currentPage === totalPages - 1;
+  document.getElementById('pageIndicator').textContent = `${currentPage} / ${totalPages - 1}`;
+}
+updateNav();
+
+/* swipe + keyboard */
+let tsx=0, tex=0, tsy=0, tey=0;
+document.addEventListener('touchstart', e => {
+  // ignore swipes that start over interactive elements
+  const target = e.target;
+  if (target.closest('.volcano-3d, .leaflet-container, #eruptionTimeline, #altitudeProfile, .audio-btn, .nav-btn')) {
+    tsx = -1; return;
+  }
+  tsx = e.changedTouches[0].screenX;
+  tsy = e.changedTouches[0].screenY;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (tsx < 0) return;
+  tex = e.changedTouches[0].screenX;
+  tey = e.changedTouches[0].screenY;
+  const dx = tsx - tex, dy = tsy - tey;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0) nextPage(); else prevPage();
+  }
+}, { passive: true });
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') nextPage();
+  if (e.key === 'ArrowLeft') prevPage();
+});
+
+/* ============================================================
+   PART II — tsParticles ambient ash
+   ============================================================ */
+if (window.tsParticles) {
+  tsParticles.load('tsparticles', {
+    fpsLimit: 30,
+    particles: {
+      number: { value: 35, density: { enable: true, area: 800 } },
+      color:   { value: ['#3a2817', '#a82e1a', '#d8804a', '#7a6240'] },
+      shape:   { type: 'circle' },
+      opacity: {
+        value: { min: 0.1, max: 0.5 },
+        animation: { enable: true, speed: 0.5, sync: false }
+      },
+      size:    { value: { min: 0.5, max: 2 } },
+      move: {
+        enable: true,
+        speed: 0.4,
+        direction: 'top',
+        random: true,
+        straight: false,
+        outModes: { default: 'out' }
+      }
+    },
+    detectRetina: true,
+    background: { color: 'transparent' }
+  });
+}
+
+/* ============================================================
+   PART III — Three.js volcano (cover)
+   ============================================================ */
+let v3d = null;
+function initVolcano3D() {
+  if (v3d || !window.THREE) return;
+  const container = document.getElementById('volcano3d');
+  if (!container) return;
+  const w = container.clientWidth || 320;
+  const h = container.clientHeight || 220;
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0xc8b078, 8, 22);
+
+  const camera = new THREE.PerspectiveCamera(34, w / h, 0.1, 100);
+  camera.position.set(7.5, 3.6, 7.5);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.enablePan = false;
+  controls.minDistance = 6;
+  controls.maxDistance = 14;
+  controls.maxPolarAngle = Math.PI * 0.48;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.6;
+
+  /* --- VOLCANO MESH --- */
+  const radius = 4.2, height = 4.2;
+  const radSegs = 80, htSegs = 36;
+  const geom = new THREE.ConeGeometry(radius, height, radSegs, htSegs, true);
+
+  // displace vertices for organic mountain look
+  const pos = geom.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const baseY = -height / 2;
+
+  function fbm(x, z) {
+    let n = 0, amp = 1, freq = 1, total = 0;
+    for (let o = 0; o < 4; o++) {
+      n += amp * (Math.sin(x * 1.8 * freq + 1.7) * Math.cos(z * 1.7 * freq + 0.9));
+      total += amp;
+      amp *= 0.5; freq *= 2.1;
+    }
+    return n / total;
+  }
+  const tmp = new THREE.Color();
+  const cBase   = new THREE.Color(0x4a3320);
+  const cMid    = new THREE.Color(0x2a1810);
+  const cAsh    = new THREE.Color(0x6e5536);
+  const cSnow   = new THREE.Color(0xf5ecd5);
+  const cRim    = new THREE.Color(0xa82e1a);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const elev = (y - baseY) / height; // 0 base → 1 peak
+    const ridge = fbm(x * 0.8, z * 0.8) * 0.18 * (1 - elev * 0.4);
+    pos.setX(i, x + ridge);
+    pos.setZ(i, z + ridge);
+    // gully streaks (vertical)
+    pos.setY(i, y + Math.sin((Math.atan2(z, x)) * 9) * 0.03 * (1 - elev));
+
+    // colors: base brown → mid → ash → snow → crater rim red
+    if (elev > 0.97) tmp.copy(cRim);
+    else if (elev > 0.85) tmp.copy(cSnow);
+    else if (elev > 0.75) tmp.copy(cSnow).lerp(cAsh, (0.85 - elev) / 0.10);
+    else if (elev > 0.45) tmp.copy(cAsh).lerp(cMid, (0.75 - elev) / 0.30);
+    else tmp.copy(cMid).lerp(cBase, (0.45 - elev) / 0.45);
+    // small variation
+    const v = 0.92 + Math.random() * 0.16;
+    colors[i*3] = tmp.r * v;
+    colors[i*3+1] = tmp.g * v;
+    colors[i*3+2] = tmp.b * v;
+  }
+  geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geom.computeVertexNormals();
+
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    flatShading: true,
+    roughness: 0.95,
+    metalness: 0.05
+  });
+  const volcano = new THREE.Mesh(geom, mat);
+  volcano.position.y = 0;
+  scene.add(volcano);
+
+  /* --- CRATER --- */
+  const craterGeom = new THREE.CircleGeometry(0.45, 32);
+  craterGeom.rotateX(-Math.PI / 2);
+  const craterMat = new THREE.MeshBasicMaterial({ color: 0xff6020 });
+  const crater = new THREE.Mesh(craterGeom, craterMat);
+  crater.position.y = height / 2 - 0.02;
+  scene.add(crater);
+
+  // crater glow ring
+  const glowGeom = new THREE.RingGeometry(0.4, 0.85, 32);
+  glowGeom.rotateX(-Math.PI / 2);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0xff7733, transparent: true, opacity: 0.45, side: THREE.DoubleSide,
+    depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  const glowRing = new THREE.Mesh(glowGeom, glowMat);
+  glowRing.position.y = height / 2 - 0.01;
+  scene.add(glowRing);
+
+  /* --- LAVA STREAKS (curved, emissive) --- */
+  const lavaGroup = new THREE.Group();
+  const lavaCount = 4;
+  for (let i = 0; i < lavaCount; i++) {
+    const ang = (i / lavaCount) * Math.PI * 2 + Math.random() * 0.6;
+    const points = [];
+    for (let t = 0; t <= 1; t += 0.05) {
+      const r = t * radius * 0.95 + 0.05;
+      const ny = height/2 - 0.05 - t * height * 0.92;
+      const wobble = Math.sin(t * 7 + i) * 0.18 * t;
+      points.push(new THREE.Vector3(
+        Math.cos(ang + wobble) * r,
+        ny,
+        Math.sin(ang + wobble) * r
+      ));
+    }
+    const curve = new THREE.CatmullRomCurve3(points);
+    const tubeGeom = new THREE.TubeGeometry(curve, 40, 0.04, 6, false);
+    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xff5722, transparent: true, opacity: 0.85 });
+    const tube = new THREE.Mesh(tubeGeom, tubeMat);
+    lavaGroup.add(tube);
+    // halo
+    const haloGeom = new THREE.TubeGeometry(curve, 40, 0.10, 6, false);
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0xff8c42, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false });
+    lavaGroup.add(new THREE.Mesh(haloGeom, haloMat));
+  }
+  scene.add(lavaGroup);
+
+  /* --- SMOKE PARTICLES --- */
+  const smokeCount = 110;
+  const smokeGeom = new THREE.BufferGeometry();
+  const smokePos = new Float32Array(smokeCount * 3);
+  const smokeData = [];
+  for (let i = 0; i < smokeCount; i++) {
+    const r = Math.random() * 0.25;
+    const a = Math.random() * Math.PI * 2;
+    smokePos[i*3]   = Math.cos(a) * r;
+    smokePos[i*3+1] = height/2 + Math.random() * 4;
+    smokePos[i*3+2] = Math.sin(a) * r;
+    smokeData.push({
+      vy: 0.006 + Math.random() * 0.014,
+      vx: (Math.random() - 0.5) * 0.005,
+      vz: (Math.random() - 0.5) * 0.005,
+      birth: Math.random()
+    });
+  }
+  smokeGeom.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
+
+  // simple round soft sprite
+  const cv = document.createElement('canvas');
+  cv.width = 64; cv.height = 64;
+  const cctx = cv.getContext('2d');
+  const grad = cctx.createRadialGradient(32, 32, 2, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+  grad.addColorStop(0.4, 'rgba(180,160,140,0.55)');
+  grad.addColorStop(1, 'rgba(60,40,20,0)');
+  cctx.fillStyle = grad;
+  cctx.beginPath(); cctx.arc(32, 32, 32, 0, Math.PI*2); cctx.fill();
+  const smokeTex = new THREE.CanvasTexture(cv);
+
+  const smokeMat = new THREE.PointsMaterial({
+    size: 0.9,
+    map: smokeTex,
+    transparent: true,
+    opacity: 0.6,
+    depthWrite: false,
+    color: 0x6a5a44,
+    blending: THREE.NormalBlending,
+    sizeAttenuation: true
+  });
+  const smoke = new THREE.Points(smokeGeom, smokeMat);
+  scene.add(smoke);
+
+  /* --- LIGHTS --- */
+  scene.add(new THREE.AmbientLight(0xfff0e0, 0.45));
+  const dir = new THREE.DirectionalLight(0xffd9aa, 1.05);
+  dir.position.set(5, 6, 5);
+  scene.add(dir);
+  const rim = new THREE.DirectionalLight(0x8da6c0, 0.4);
+  rim.position.set(-6, 2, -4);
+  scene.add(rim);
+  const craterLight = new THREE.PointLight(0xff5722, 1.6, 5);
+  craterLight.position.set(0, height/2 + 0.1, 0);
+  scene.add(craterLight);
+
+  /* --- GROUND DISC (faint, for shadow feel) --- */
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(8, 48),
+    new THREE.MeshBasicMaterial({ color: 0xc8b078, transparent: true, opacity: 0.0 })
+  );
+  ground.rotation.x = -Math.PI/2;
+  ground.position.y = -height/2 - 0.001;
+  scene.add(ground);
+
+  /* --- ANIMATION --- */
+  let active = true;
+  let frame = 0;
+  const readout = document.getElementById('v3dReadout');
+  function animate() {
+    if (!active) return;
+    requestAnimationFrame(animate);
+    frame++;
+    controls.update();
+
+    // smoke
+    const sp = smoke.geometry.attributes.position;
+    for (let i = 0; i < smokeCount; i++) {
+      let x = sp.getX(i), y = sp.getY(i), z = sp.getZ(i);
+      y += smokeData[i].vy;
+      x += smokeData[i].vx + Math.sin(frame * 0.01 + i) * 0.0015;
+      z += smokeData[i].vz + Math.cos(frame * 0.01 + i) * 0.0015;
+      if (y > height/2 + 4) {
+        const r = Math.random() * 0.25;
+        const a = Math.random() * Math.PI * 2;
+        x = Math.cos(a) * r;
+        y = height/2 + 0.05;
+        z = Math.sin(a) * r;
+      }
+      sp.setXYZ(i, x, y, z);
+    }
+    sp.needsUpdate = true;
+    smoke.material.opacity = 0.45 + Math.sin(frame * 0.02) * 0.1;
+
+    // crater pulse
+    const pulse = 0.85 + Math.sin(frame * 0.04) * 0.18;
+    craterMat.color.setHSL(0.04, 1, 0.5 + Math.sin(frame * 0.06) * 0.05);
+    glowMat.opacity = 0.35 + Math.sin(frame * 0.03) * 0.18;
+    glowRing.scale.set(pulse, 1, pulse);
+    craterLight.intensity = 1.4 + Math.sin(frame * 0.05) * 0.6;
+
+    // lava shimmer
+    lavaGroup.children.forEach((c, ci) => {
+      if (c.material) {
+        c.material.opacity = (ci % 2 === 0)
+          ? 0.78 + Math.sin(frame * 0.08 + ci) * 0.18
+          : 0.15 + Math.sin(frame * 0.04 + ci) * 0.08;
+      }
+    });
+
+    // readout
+    if (readout && frame % 12 === 0) {
+      const az = ((controls.getAzimuthalAngle() * 180 / Math.PI) % 360 + 360) % 360;
+      readout.textContent = `3,357 m · az ${az.toFixed(0)}°`;
+    }
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // resize
+  const onResize = () => {
+    const nw = container.clientWidth, nh = container.clientHeight;
+    camera.aspect = nw / nh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nw, nh);
+  };
+  window.addEventListener('resize', onResize);
+
+  v3d = { scene, camera, renderer, controls, pause(){ active=false; }, resume(){ if(!active){ active=true; animate(); } } };
+}
+
+/* ============================================================
+   PART IV — Leaflet interactive map
+   ============================================================ */
+let leafletMap = null;
+function initSicilyMap() {
+  if (leafletMap || !window.L) return;
+  const el = document.getElementById('sicilyMap');
+  if (!el) return;
+
+  leafletMap = L.map(el, {
+    zoomControl: false,
+    attributionControl: false,
+    scrollWheelZoom: false,
+    dragging: true,
+    tap: true
+  }).setView([37.78, 15.10], 9);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 14,
+    minZoom: 7
+  }).addTo(leafletMap);
+
+  // Etna marker
+  const etnaIcon = L.divIcon({
+    className: 'map-pin etna',
+    html: '<div class="map-pin-inner">E</div>',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14]
+  });
+  L.marker([37.751, 14.993], { icon: etnaIcon })
+    .addTo(leafletMap)
+    .bindPopup('<strong>Mount Etna</strong><br>3,357 m · UNESCO 2013<br><em>la Muntagna</em>')
+    .on('click', () => {});
+
+  // Taormina marker
+  const taoIcon = L.divIcon({
+    className: 'map-pin tao',
+    html: '<div class="map-pin-inner">T</div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11]
+  });
+  L.marker([37.852, 15.291], { icon: taoIcon })
+    .addTo(leafletMap)
+    .bindPopup('<strong>Taormina</strong><br>200 m · cliffside town<br><em>il balcone di Sicilia</em>');
+
+  // Catania (small, secondary)
+  const catIcon = L.divIcon({
+    className: 'map-pin cat',
+    html: '<div class="map-pin-inner">·</div>',
+    iconSize: [12, 12],
+    iconAnchor: [6, 6]
+  });
+  L.marker([37.502, 15.087], { icon: catIcon })
+    .addTo(leafletMap)
+    .bindPopup('<strong>Catania</strong><br>arrival point');
+
+  // route line
+  L.polyline(
+    [[37.502, 15.087], [37.751, 14.993], [37.852, 15.291]],
+    { color: '#a82e1a', weight: 2, dashArray: '4,4', opacity: 0.7 }
+  ).addTo(leafletMap);
+
+  // hover labels (permanent tooltips)
+  L.tooltip({ permanent: true, direction: 'right', className: 'map-label', offset: [12, 0] })
+    .setLatLng([37.751, 14.993])
+    .setContent('<span style="font-family:Special Elite,monospace;font-size:8px;letter-spacing:0.15em;color:#a82e1a;background:rgba(239,229,205,0.85);padding:1px 4px;border-radius:2px;">ETNA</span>')
+    .addTo(leafletMap);
+
+  L.tooltip({ permanent: true, direction: 'right', className: 'map-label', offset: [10, 0] })
+    .setLatLng([37.852, 15.291])
+    .setContent('<span style="font-family:Special Elite,monospace;font-size:8px;letter-spacing:0.15em;color:#4f5e44;background:rgba(239,229,205,0.85);padding:1px 4px;border-radius:2px;">TAORMINA</span>')
+    .addTo(leafletMap);
+}
+
+/* ============================================================
+   PART V — D3 eruption timeline
+   ============================================================ */
+let eruptionChartBuilt = false;
+function buildEruptionTimeline() {
+  if (eruptionChartBuilt || !window.d3) return;
+  const el = document.getElementById('eruptionTimeline');
+  if (!el) return;
+  eruptionChartBuilt = true;
+
+  const data = [
+    { year: 1500, name: 'Major eruption',          vei: 3, desc: 'Recorded by chroniclers in Catania.' },
+    { year: 1614, name: 'Decade-long emission',    vei: 3, desc: 'Lava flowed continuously for ten years on the north flank.' },
+    { year: 1669, name: 'The Catania flow',        vei: 3, desc: 'Lava reached the sea, swallowed villages, fused the harbour.' },
+    { year: 1763, name: 'Birth of Montagnola',     vei: 3, desc: 'A new cone formed on the south flank — still visible.' },
+    { year: 1865, name: 'Northeast fissure',       vei: 3, desc: 'Created Monte Frumento delle Concazze.' },
+    { year: 1892, name: 'Silvestri craters born',  vei: 2, desc: 'The famous walking craters above Rifugio Sapienza.' },
+    { year: 1928, name: 'Mascali buried',          vei: 3, desc: 'An entire town engulfed in three days.' },
+    { year: 1971, name: 'Observatory destroyed',   vei: 2, desc: 'Lost the 19th-century summit observatory.' },
+    { year: 1981, name: 'Randazzo near-miss',      vei: 3, desc: 'Lava stopped 100 m from the medieval town walls.' },
+    { year: 1991, name: '473-day eruption',        vei: 3, desc: 'The longest eruption of the 20th century.' },
+    { year: 2002, name: 'Sapienza flow',           vei: 3, desc: 'Destroyed cable car pylons and chalets — black scar still visible.' },
+    { year: 2013, name: 'UNESCO inscription',      vei: 0, desc: 'Etna joins the UNESCO World Heritage list.' },
+    { year: 2021, name: 'Southeast paroxysms',     vei: 3, desc: '~30 m added to the summit — Etna at her tallest ever.' },
+    { year: 2024, name: 'Recent activity',         vei: 2, desc: 'Continued effusion from the Southeast Crater.' }
   ];
 
-  // Build TOC
-  const tocList = document.getElementById('tocList');
-  chapters.forEach(ch => {
-    const item = document.createElement('div');
-    item.className = 'toc-item';
-    item.dataset.target = ch.page;
-    item.innerHTML = `
-      <span class="toc-num">${ch.num}</span>
-      <span class="toc-name">${ch.name} <em>· ${ch.it}</em></span>
-      <span class="toc-dots"></span>
-      <span class="toc-page">${ch.fol}</span>
-    `;
-    item.addEventListener('click', () => goToPage(parseInt(item.dataset.target)));
-    tocList.appendChild(item);
+  const width = 540, height = 220;
+  const margin = { top: 20, right: 16, bottom: 28, left: 32 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const svg = d3.select(el).append('svg')
+    .attr('class', 'timeline-svg')
+    .attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+
+  // background gradient
+  const defs = svg.append('defs');
+  const grad = defs.append('linearGradient').attr('id', 'lavaGrad').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 1);
+  grad.append('stop').attr('offset', '0%').attr('stop-color', '#a82e1a');
+  grad.append('stop').attr('offset', '100%').attr('stop-color', '#d8804a');
+
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const x = d3.scaleLinear().domain([1490, 2030]).range([0, innerW]);
+  const y = d3.scaleLinear().domain([0, 4]).range([innerH, 0]);
+
+  // grid
+  g.selectAll('.grid').data([0,1,2,3,4]).enter().append('line')
+    .attr('x1', 0).attr('x2', innerW)
+    .attr('y1', d => y(d)).attr('y2', d => y(d))
+    .attr('stroke', '#a89372').attr('stroke-width', 0.4)
+    .attr('stroke-dasharray', '2,2').attr('opacity', 0.5);
+
+  // y-axis labels
+  g.selectAll('.y-lbl').data([1,2,3,4]).enter().append('text')
+    .attr('x', -6).attr('y', d => y(d) + 3)
+    .attr('text-anchor', 'end')
+    .attr('font-family', 'Special Elite').attr('font-size', 9)
+    .attr('fill', '#7a6240')
+    .text(d => 'VEI ' + d);
+
+  // x-axis
+  g.append('g')
+    .attr('class', 'd3-axis')
+    .attr('transform', `translate(0,${innerH})`)
+    .call(d3.axisBottom(x).tickFormat(d3.format('d')).ticks(7).tickSizeOuter(0))
+    .selectAll('text').attr('y', 12);
+
+  // bars
+  const tooltip = d3.select('#d3Tooltip');
+  const bars = g.selectAll('.bar').data(data).enter().append('g').attr('class', 'bar');
+  bars.append('rect')
+    .attr('x', d => x(d.year) - 4)
+    .attr('y', d => y(Math.max(d.vei, 0.4)))
+    .attr('width', 8)
+    .attr('height', d => innerH - y(Math.max(d.vei, 0.4)))
+    .attr('fill', d => d.vei === 0 ? '#7a8b6e' : 'url(#lavaGrad)')
+    .attr('stroke', d => d.vei === 0 ? '#4f5e44' : '#7a1f0f')
+    .attr('stroke-width', 0.6)
+    .attr('rx', 1)
+    .style('cursor', 'pointer')
+    .style('transition', 'all 0.2s')
+    .on('mouseenter touchstart', function(e, d) {
+      d3.select(this).attr('fill', '#ffb47a').attr('stroke-width', 1.2);
+      tooltip.classed('visible', true)
+        .html(`<strong>${d.year} · ${d.name}</strong>${d.desc}<br><span class="d3-meta">VEI ${d.vei}</span>`);
+    })
+    .on('mousemove', function(e) {
+      const tx = Math.min(e.clientX + 12, window.innerWidth - 240);
+      const ty = Math.min(e.clientY + 12, window.innerHeight - 100);
+      tooltip.style('left', tx + 'px').style('top', ty + 'px');
+    })
+    .on('mouseleave touchend', function(e, d) {
+      d3.select(this).attr('fill', d.vei === 0 ? '#7a8b6e' : 'url(#lavaGrad)').attr('stroke-width', 0.6);
+      tooltip.classed('visible', false);
+    });
+
+  // year labels for major events
+  bars.filter(d => d.vei >= 3).append('text')
+    .attr('x', d => x(d.year))
+    .attr('y', d => y(d.vei) - 4)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'Special Elite')
+    .attr('font-size', 8.5)
+    .attr('fill', '#7a1f0f')
+    .text(d => d.year);
+
+  // title
+  svg.append('text')
+    .attr('x', width/2).attr('y', 12)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'Cinzel').attr('font-weight', 600)
+    .attr('font-size', 10).attr('letter-spacing', '0.15em')
+    .attr('fill', '#2a1f15')
+    .text('NOTABLE ERUPTIONS · 1500–2025');
+}
+
+/* ============================================================
+   PART VI — D3 altitude profile
+   ============================================================ */
+let profileChartBuilt = false;
+function buildAltitudeProfile() {
+  if (profileChartBuilt || !window.d3) return;
+  const el = document.getElementById('altitudeProfile');
+  if (!el) return;
+  profileChartBuilt = true;
+
+  const data = [
+    { km: 0,  elev: 0,    label: 'Sea',       sub: 'Ionian coast' },
+    { km: 5,  elev: 7,    label: 'Catania',   sub: 'arrival · 7 m' },
+    { km: 18, elev: 350,  label: '',          sub: 'chestnut belt' },
+    { km: 30, elev: 1200, label: 'Nicolosi',  sub: 'last village · 700 m' },
+    { km: 36, elev: 1900, label: 'Rifugio',   sub: 'Sapienza · 1,900 m' },
+    { km: 40, elev: 2500, label: 'Cable Top', sub: 'Funivia · 2,500 m' },
+    { km: 43, elev: 2920, label: 'Filosofo',  sub: '4×4 stop · 2,920 m' },
+    { km: 45, elev: 3357, label: 'SUMMIT',    sub: 'crater rim · 3,357 m' },
+    { km: 52, elev: 1800, label: '',          sub: 'descent' },
+    { km: 60, elev: 600,  label: '',          sub: 'lava terraces' },
+    { km: 72, elev: 200,  label: 'Taormina',  sub: 'cliff town · 200 m' },
+    { km: 75, elev: 0,    label: 'Sea',       sub: 'Ionian coast' }
+  ];
+
+  const width = 540, height = 200;
+  const margin = { top: 20, right: 14, bottom: 36, left: 44 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const svg = d3.select(el).append('svg')
+    .attr('class', 'profile-svg')
+    .attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+
+  const defs = svg.append('defs');
+  const ag = defs.append('linearGradient').attr('id', 'altGrad').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 1);
+  ag.append('stop').attr('offset', '0%').attr('stop-color', '#a82e1a').attr('stop-opacity', 0.4);
+  ag.append('stop').attr('offset', '100%').attr('stop-color', '#a82e1a').attr('stop-opacity', 0);
+
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const x = d3.scaleLinear().domain([0, 75]).range([0, innerW]);
+  const y = d3.scaleLinear().domain([0, 3500]).range([innerH, 0]);
+
+  // grid
+  [0, 1000, 2000, 3000].forEach(t => {
+    g.append('line')
+      .attr('x1', 0).attr('x2', innerW)
+      .attr('y1', y(t)).attr('y2', y(t))
+      .attr('stroke', '#a89372').attr('stroke-width', 0.4)
+      .attr('stroke-dasharray', '2,2').attr('opacity', 0.5);
+    g.append('text')
+      .attr('x', -6).attr('y', y(t) + 3)
+      .attr('text-anchor', 'end')
+      .attr('font-family', 'Special Elite').attr('font-size', 9)
+      .attr('fill', '#7a6240')
+      .text(t + ' m');
   });
 
-  // ========== NAVIGATION ==========
-  let currentPage = 0;
-  const totalPages = 9;
+  // axes
+  g.append('g').attr('class', 'd3-axis').attr('transform', `translate(0,${innerH})`)
+    .call(d3.axisBottom(x).tickFormat(d => d + ' km').ticks(6).tickSizeOuter(0))
+    .selectAll('text').attr('y', 12);
 
-  function showPage(n, direction) {
-    const current = document.querySelector('.page.active');
-    const next = document.querySelector(`.page[data-page="${n}"]`);
-    if (!next || current === next) return;
-    next.querySelector('.page-inner')?.scrollTo({ top: 0 });
-    current.classList.remove('active');
-    current.classList.add(direction === 'next' ? 'leaving-right' : 'leaving-left');
-    next.classList.add('active');
-    setTimeout(() => current.classList.remove('leaving-right', 'leaving-left'), 650);
-    currentPage = n;
-    updateNav();
-    stopTTS();
-  }
-  function nextPage() { if (currentPage < totalPages - 1) showPage(currentPage + 1, 'next'); }
-  function prevPage() { if (currentPage > 0) showPage(currentPage - 1, 'prev'); }
-  function goToPage(n) {
-    if (n === currentPage) return;
-    showPage(n, n > currentPage ? 'next' : 'prev');
-  }
-  function updateNav() {
-    document.getElementById('prevBtn').disabled = currentPage === 0;
-    document.getElementById('nextBtn').disabled = currentPage === totalPages - 1;
-    document.getElementById('pageIndicator').textContent = `${currentPage} / ${totalPages - 1}`;
-  }
-  updateNav();
+  // area
+  const area = d3.area().x(d => x(d.km)).y0(innerH).y1(d => y(d.elev)).curve(d3.curveCatmullRom.alpha(0.5));
+  g.append('path').datum(data).attr('fill', 'url(#altGrad)').attr('d', area);
 
-  // ========== SWIPE/KEYBOARD ==========
-  let tsx = 0, tex = 0, tsy = 0, tey = 0;
-  document.addEventListener('touchstart', e => {
-    tsx = e.changedTouches[0].screenX;
-    tsy = e.changedTouches[0].screenY;
-  }, { passive: true });
-  document.addEventListener('touchend', e => {
-    tex = e.changedTouches[0].screenX;
-    tey = e.changedTouches[0].screenY;
-    const dx = tsx - tex, dy = tsy - tey;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
-      if (dx > 0) nextPage(); else prevPage();
-    }
-  }, { passive: true });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === ' ') nextPage();
-    if (e.key === 'ArrowLeft') prevPage();
-  });
+  // line
+  const line = d3.line().x(d => x(d.km)).y(d => y(d.elev)).curve(d3.curveCatmullRom.alpha(0.5));
+  const path = g.append('path').datum(data)
+    .attr('fill', 'none')
+    .attr('stroke', '#a82e1a')
+    .attr('stroke-width', 1.6)
+    .attr('stroke-linecap', 'round')
+    .attr('stroke-linejoin', 'round')
+    .attr('d', line);
 
-  // ========== AMBIENT SOUND ==========
-  let audioContext = null, ambientNodes = {}, ambientPlaying = false;
-  function initAudio() {
-    if (audioContext) return;
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  function createWindNoise() {
-    const bs = 2 * audioContext.sampleRate;
-    const buf = audioContext.createBuffer(1, bs, audioContext.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < bs; i++) d[i] = Math.random() * 2 - 1;
-    const noise = audioContext.createBufferSource();
-    noise.buffer = buf; noise.loop = true;
-    const filter = audioContext.createBiquadFilter();
-    filter.type = 'bandpass'; filter.frequency.value = 400; filter.Q.value = 0.5;
-    const lfo = audioContext.createOscillator();
-    const lfoGain = audioContext.createGain();
-    lfo.frequency.value = 0.15; lfoGain.gain.value = 200;
-    lfo.connect(lfoGain); lfoGain.connect(filter.frequency);
-    const g = audioContext.createGain(); g.gain.value = 0;
-    noise.connect(filter); filter.connect(g); g.connect(audioContext.destination);
-    noise.start(); lfo.start();
-    return { noise, filter, gainNode: g, lfo };
-  }
-  function createRumble() {
-    const o = audioContext.createOscillator(); o.type = 'sine'; o.frequency.value = 35;
-    const so = audioContext.createOscillator(); so.type = 'sine'; so.frequency.value = 20;
-    const lfo = audioContext.createOscillator();
-    const lg = audioContext.createGain();
-    lfo.frequency.value = 0.08; lg.gain.value = 10;
-    lfo.connect(lg); lg.connect(o.frequency);
-    const g = audioContext.createGain(); g.gain.value = 0;
-    const sg = audioContext.createGain(); sg.gain.value = 0;
-    o.connect(g); so.connect(sg); g.connect(audioContext.destination); sg.connect(audioContext.destination);
-    o.start(); so.start(); lfo.start();
-    return { oscillator: o, subOsc: so, gainNode: g, subGain: sg, lfo };
-  }
-  function startAmbient() {
-    initAudio();
-    if (audioContext.state === 'suspended') audioContext.resume();
-    ambientNodes.wind = createWindNoise();
-    ambientNodes.rumble = createRumble();
-    const v = 0.3;
-    ambientNodes.wind.gainNode.gain.setTargetAtTime(0.15 * v, audioContext.currentTime, 0.5);
-    ambientNodes.rumble.gainNode.gain.setTargetAtTime(0.2 * v, audioContext.currentTime, 0.5);
-    ambientNodes.rumble.subGain.gain.setTargetAtTime(0.15 * v, audioContext.currentTime, 0.5);
-    ambientPlaying = true;
-  }
-  function stopAmbient() {
-    if (!ambientNodes.wind) return;
-    const t = 0.5;
-    ambientNodes.wind.gainNode.gain.setTargetAtTime(0, audioContext.currentTime, t);
-    ambientNodes.rumble.gainNode.gain.setTargetAtTime(0, audioContext.currentTime, t);
-    ambientNodes.rumble.subGain.gain.setTargetAtTime(0, audioContext.currentTime, t);
-    ambientPlaying = false;
-    setTimeout(() => {
-      try {
-        ambientNodes.wind?.noise.stop();
-        ambientNodes.wind?.lfo.stop();
-        ambientNodes.rumble?.oscillator.stop();
-        ambientNodes.rumble?.subOsc.stop();
-        ambientNodes.rumble?.lfo.stop();
-      } catch(e) {}
-      ambientNodes = {};
-    }, 1000);
-  }
-  document.getElementById('ambientBtn').addEventListener('click', () => {
-    initAudio();
-    if (ambientPlaying) {
-      stopAmbient();
-      document.getElementById('ambientBtn').classList.remove('active');
-    } else {
-      startAmbient();
-      document.getElementById('ambientBtn').classList.add('active');
-    }
-  });
+  // animate the line drawing
+  const totalLen = path.node().getTotalLength();
+  path.attr('stroke-dasharray', `${totalLen} ${totalLen}`)
+      .attr('stroke-dashoffset', totalLen)
+      .transition().duration(1500).ease(d3.easeQuadInOut)
+      .attr('stroke-dashoffset', 0);
 
-  // ========== TTS ==========
-  let currentUtterance = null, isSpeaking = false;
-  function getPageText() {
-    const ap = document.querySelector('.page.active .page-inner');
-    if (!ap) return '';
-    const c = ap.cloneNode(true);
-    c.querySelectorAll('.back-link, .sketch-frame, .margin-note, .specimen-tag, svg, .page-header, .page-footer').forEach(el => el.remove());
-    return (c.innerText || '').replace(/\s+/g, ' ').trim();
+  // labelled waypoints
+  const waypoints = data.filter(d => d.label);
+  const wpG = g.selectAll('.wp').data(waypoints).enter().append('g').attr('class', 'wp');
+  wpG.append('circle')
+    .attr('cx', d => x(d.km)).attr('cy', d => y(d.elev))
+    .attr('r', d => d.label === 'SUMMIT' ? 5 : 3.2)
+    .attr('fill', d => d.label === 'SUMMIT' ? '#f0c060' : '#a82e1a')
+    .attr('stroke', d => d.label === 'SUMMIT' ? '#7a1f0f' : '#fff5dc')
+    .attr('stroke-width', 1.2);
+  wpG.append('text')
+    .attr('x', d => x(d.km))
+    .attr('y', d => y(d.elev) - 9)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'Special Elite')
+    .attr('font-size', d => d.label === 'SUMMIT' ? 9 : 8)
+    .attr('font-weight', d => d.label === 'SUMMIT' ? 700 : 400)
+    .attr('fill', '#7a1f0f')
+    .text(d => d.label);
+  wpG.append('text')
+    .attr('x', d => x(d.km))
+    .attr('y', innerH + 24)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'EB Garamond')
+    .attr('font-style', 'italic')
+    .attr('font-size', 8)
+    .attr('fill', '#7a6240')
+    .text(d => d.sub.split(' · ')[1] || '');
+
+  // hover crosshair
+  const focus = g.append('g').style('display', 'none');
+  focus.append('line').attr('class', 'crosshair-y')
+    .attr('y1', 0).attr('y2', innerH)
+    .attr('stroke', '#7a1f0f').attr('stroke-width', 0.8).attr('stroke-dasharray', '3,3');
+  focus.append('circle').attr('r', 4).attr('fill', '#ffd166').attr('stroke', '#7a1f0f').attr('stroke-width', 1);
+
+  const tooltip = d3.select('#d3Tooltip');
+  const bisect = d3.bisector(d => d.km).left;
+
+  // dense interpolation curve so hover gives accurate elev
+  const dense = [];
+  for (let k = 0; k <= 75; k += 0.2) {
+    const i = bisect(data, k);
+    if (i === 0) { dense.push(data[0]); continue; }
+    if (i >= data.length) { dense.push(data[data.length-1]); continue; }
+    const a = data[i-1], b = data[i];
+    const t = (k - a.km) / (b.km - a.km);
+    dense.push({ km: k, elev: a.elev + t * (b.elev - a.elev) });
   }
-  function startTTS() {
-    if (!('speechSynthesis' in window)) { alert('Text-to-speech is not supported in your browser.'); return; }
-    stopTTS();
-    const text = getPageText();
-    if (!text) return;
-    currentUtterance = new SpeechSynthesisUtterance(text);
-    currentUtterance.rate = 0.92;
-    currentUtterance.pitch = 1;
-    currentUtterance.volume = 0.85;
-    const voices = speechSynthesis.getVoices();
-    const pref = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) ||
-                 voices.find(v => v.lang.startsWith('en') && v.name.includes('Natural')) ||
-                 voices.find(v => v.lang.startsWith('en'));
-    if (pref) currentUtterance.voice = pref;
-    currentUtterance.onstart = () => {
-      isSpeaking = true;
-      document.getElementById('readingIndicator').classList.add('visible');
-      document.getElementById('ttsBtn').classList.add('active');
-    };
-    currentUtterance.onend = currentUtterance.onerror = () => {
-      isSpeaking = false;
-      document.getElementById('readingIndicator').classList.remove('visible');
-      document.getElementById('ttsBtn').classList.remove('active');
-    };
-    speechSynthesis.speak(currentUtterance);
+
+  g.append('rect')
+    .attr('width', innerW).attr('height', innerH)
+    .attr('fill', 'transparent')
+    .style('cursor', 'crosshair')
+    .on('mouseenter touchstart', () => focus.style('display', null))
+    .on('mouseleave touchend', () => {
+      focus.style('display', 'none');
+      tooltip.classed('visible', false);
+    })
+    .on('mousemove touchmove', function(e) {
+      const ev = e.touches ? e.touches[0] : e;
+      const [mx] = d3.pointer(ev, this);
+      const km = x.invert(mx);
+      const i = bisect(dense, km);
+      const d = dense[Math.max(0, Math.min(dense.length-1, i))];
+      focus.attr('transform', `translate(${x(d.km)},${y(d.elev)})`);
+      tooltip.classed('visible', true)
+        .html(`<strong>${d.km.toFixed(1)} km</strong><span class="d3-meta">elev. ${Math.round(d.elev)} m</span>`)
+        .style('left', Math.min(ev.clientX + 12, window.innerWidth - 180) + 'px')
+        .style('top',  Math.min(ev.clientY + 12, window.innerHeight - 80) + 'px');
+    });
+
+  // title
+  svg.append('text')
+    .attr('x', width/2).attr('y', 12)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'Cinzel').attr('font-weight', 600)
+    .attr('font-size', 10).attr('letter-spacing', '0.15em')
+    .attr('fill', '#2a1f15')
+    .text('CATANIA → ETNA → TAORMINA · ALTITUDE PROFILE');
+}
+
+/* ============================================================
+   PART VII — Page-enter hooks (lazy-init heavy graphics)
+   ============================================================ */
+function onPageEnter(n) {
+  if (n === 0) {
+    initVolcano3D();
+    if (v3d) v3d.resume();
+  } else {
+    if (v3d) v3d.pause();
   }
-  function stopTTS() {
-    if (window.speechSynthesis && speechSynthesis.speaking) speechSynthesis.cancel();
+  if (n === 1) {
+    initSicilyMap();
+    setTimeout(() => leafletMap?.invalidateSize(), 350);
+  }
+  if (n === 3) buildEruptionTimeline();
+  if (n === 4) buildAltitudeProfile();
+}
+// Initial page (cover)
+onPageEnter(0);
+
+/* ============================================================
+   PART VIII — Ambient sound (Web Audio synth)
+   ============================================================ */
+let audioContext = null, ambientNodes = {}, ambientPlaying = false;
+function initAudio() {
+  if (audioContext) return;
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+}
+function createWindNoise() {
+  const bs = 2 * audioContext.sampleRate;
+  const buf = audioContext.createBuffer(1, bs, audioContext.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bs; i++) d[i] = Math.random() * 2 - 1;
+  const noise = audioContext.createBufferSource();
+  noise.buffer = buf; noise.loop = true;
+  const filter = audioContext.createBiquadFilter();
+  filter.type = 'bandpass'; filter.frequency.value = 400; filter.Q.value = 0.5;
+  const lfo = audioContext.createOscillator();
+  const lfoGain = audioContext.createGain();
+  lfo.frequency.value = 0.15; lfoGain.gain.value = 200;
+  lfo.connect(lfoGain); lfoGain.connect(filter.frequency);
+  const g = audioContext.createGain(); g.gain.value = 0;
+  noise.connect(filter); filter.connect(g); g.connect(audioContext.destination);
+  noise.start(); lfo.start();
+  return { noise, filter, gainNode: g, lfo };
+}
+function createRumble() {
+  const o = audioContext.createOscillator(); o.type = 'sine'; o.frequency.value = 35;
+  const so = audioContext.createOscillator(); so.type = 'sine'; so.frequency.value = 20;
+  const lfo = audioContext.createOscillator();
+  const lg = audioContext.createGain();
+  lfo.frequency.value = 0.08; lg.gain.value = 10;
+  lfo.connect(lg); lg.connect(o.frequency);
+  const g = audioContext.createGain(); g.gain.value = 0;
+  const sg = audioContext.createGain(); sg.gain.value = 0;
+  o.connect(g); so.connect(sg); g.connect(audioContext.destination); sg.connect(audioContext.destination);
+  o.start(); so.start(); lfo.start();
+  return { oscillator: o, subOsc: so, gainNode: g, subGain: sg, lfo };
+}
+function startAmbient() {
+  initAudio();
+  if (audioContext.state === 'suspended') audioContext.resume();
+  ambientNodes.wind = createWindNoise();
+  ambientNodes.rumble = createRumble();
+  const v = 0.3;
+  ambientNodes.wind.gainNode.gain.setTargetAtTime(0.15 * v, audioContext.currentTime, 0.5);
+  ambientNodes.rumble.gainNode.gain.setTargetAtTime(0.2 * v, audioContext.currentTime, 0.5);
+  ambientNodes.rumble.subGain.gain.setTargetAtTime(0.15 * v, audioContext.currentTime, 0.5);
+  ambientPlaying = true;
+}
+function stopAmbient() {
+  if (!ambientNodes.wind) return;
+  const t = 0.5;
+  ambientNodes.wind.gainNode.gain.setTargetAtTime(0, audioContext.currentTime, t);
+  ambientNodes.rumble.gainNode.gain.setTargetAtTime(0, audioContext.currentTime, t);
+  ambientNodes.rumble.subGain.gain.setTargetAtTime(0, audioContext.currentTime, t);
+  ambientPlaying = false;
+  setTimeout(() => {
+    try {
+      ambientNodes.wind?.noise.stop();
+      ambientNodes.wind?.lfo.stop();
+      ambientNodes.rumble?.oscillator.stop();
+      ambientNodes.rumble?.subOsc.stop();
+      ambientNodes.rumble?.lfo.stop();
+    } catch(e) {}
+    ambientNodes = {};
+  }, 1000);
+}
+document.getElementById('ambientBtn').addEventListener('click', () => {
+  initAudio();
+  if (ambientPlaying) {
+    stopAmbient();
+    document.getElementById('ambientBtn').classList.remove('active');
+  } else {
+    startAmbient();
+    document.getElementById('ambientBtn').classList.add('active');
+  }
+});
+
+/* ============================================================
+   PART IX — TTS
+   ============================================================ */
+let currentUtterance = null, isSpeaking = false;
+function getPageText() {
+  const ap = document.querySelector('.page.active .page-inner');
+  if (!ap) return '';
+  const c = ap.cloneNode(true);
+  c.querySelectorAll('.back-link, .sketch-frame, .margin-note, .specimen-tag, svg, .page-header, .page-footer, #sicilyMap, #eruptionTimeline, #altitudeProfile, #volcano3d').forEach(el => el.remove());
+  return (c.innerText || '').replace(/\s+/g, ' ').trim();
+}
+function startTTS() {
+  if (!('speechSynthesis' in window)) { alert('TTS not supported.'); return; }
+  stopTTS();
+  const text = getPageText();
+  if (!text) return;
+  currentUtterance = new SpeechSynthesisUtterance(text);
+  currentUtterance.rate = 0.92; currentUtterance.pitch = 1; currentUtterance.volume = 0.85;
+  const voices = speechSynthesis.getVoices();
+  const pref = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) ||
+               voices.find(v => v.lang.startsWith('en') && v.name.includes('Natural')) ||
+               voices.find(v => v.lang.startsWith('en'));
+  if (pref) currentUtterance.voice = pref;
+  currentUtterance.onstart = () => {
+    isSpeaking = true;
+    document.getElementById('readingIndicator').classList.add('visible');
+    document.getElementById('ttsBtn').classList.add('active');
+  };
+  currentUtterance.onend = currentUtterance.onerror = () => {
     isSpeaking = false;
-    document.getElementById('readingIndicator')?.classList.remove('visible');
-    document.getElementById('ttsBtn')?.classList.remove('active');
-  }
-  if ('speechSynthesis' in window) {
-    speechSynthesis.getVoices();
-    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
-  }
-  document.getElementById('ttsBtn').addEventListener('click', () => {
-    if (isSpeaking) stopTTS(); else startTTS();
-  });
+    document.getElementById('readingIndicator').classList.remove('visible');
+    document.getElementById('ttsBtn').classList.remove('active');
+  };
+  speechSynthesis.speak(currentUtterance);
+}
+function stopTTS() {
+  if (window.speechSynthesis && speechSynthesis.speaking) speechSynthesis.cancel();
+  isSpeaking = false;
+  document.getElementById('readingIndicator')?.classList.remove('visible');
+  document.getElementById('ttsBtn')?.classList.remove('active');
+}
+if ('speechSynthesis' in window) {
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
+document.getElementById('ttsBtn').addEventListener('click', () => {
+  if (isSpeaking) stopTTS(); else startTTS();
+});
 </script>
 
 </body>
