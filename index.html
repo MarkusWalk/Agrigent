@@ -305,6 +305,25 @@
     background: linear-gradient(135deg, #d4a574 0%, #c9a227 30%, #f5d998 50%, #c4785f 80%, #9e5a42 100%);
   }
 
+  .card-gradient.volcanic {
+    background: linear-gradient(135deg, #3d3635 0%, #5a4a48 20%, #d4451a 50%, #ff6b3d 70%, #2a2220 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-gradient.volcanic::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 60%, rgba(255, 107, 61, 0.4) 0%, transparent 50%);
+    animation: emberPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes emberPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
   .card-gradient.coming-soon {
     background: linear-gradient(135deg, #b8c5b4 0%, #7a8b6e 50%, #5a6b4e 100%);
   }
@@ -529,6 +548,44 @@
               <circle cx="12" cy="10" r="3"/>
             </svg>
             Agrigento
+          </span>
+        </div>
+        <div class="card-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- Etna Guide -->
+    <a href="etna.html" class="guide-card">
+      <div class="card-image">
+        <div class="card-gradient volcanic">
+          <span class="card-icon">&#127755;</span>
+        </div>
+      </div>
+      <div class="card-content">
+        <div class="card-region">Sicily, Italy</div>
+        <h2 class="card-title">Mount Etna</h2>
+        <p class="card-description">
+          A journey to Europe's tallest active volcano. Cable cars through lava fields,
+          summit craters, and the charming towns at her feet.
+        </p>
+        <div class="card-meta">
+          <span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            Full day
+          </span>
+          <span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            Catania
           </span>
         </div>
         <div class="card-arrow">

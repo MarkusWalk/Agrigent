@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Mount Etna · A Journey to Fire and Ice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Italianno&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f2ede5;
+    --paper-shadow: #d9d0c2;
+    --paper-edge: #b8ab96;
+    --ink: #1a1816;
+    --ink-soft: #4a4540;
+    --ink-faint: #7a7368;
+    --volcanic: #3d3635;
+    --volcanic-deep: #252120;
+    --lava: #d4451a;
+    --lava-glow: #ff6b3d;
+    --ember: #ff9a5c;
+    --ash: #6b6560;
+    --snow: #f5f8fa;
+    --sky: #4a7c9b;
+    --shadow: rgba(26, 24, 22, 0.18);
+    --shadow-deep: rgba(26, 24, 22, 0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-family: 'EB Garamond', Georgia, serif;
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse at center, #3d3530 0%, #252220 70%, #1a1816 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ========== BOOK ========== */
+  .book {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    height: calc(100vh - 24px);
+    max-height: 820px;
+    perspective: 1800px;
+  }
+
+  .pages {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+  }
+
+  .page {
+    position: absolute;
+    inset: 0;
+    background: var(--paper);
+    border-radius: 4px 14px 14px 4px;
+    box-shadow:
+      0 4px 20px var(--shadow),
+      0 18px 50px var(--shadow-deep),
+      inset 0 0 60px rgba(150, 130, 100, 0.15),
+      inset 8px 0 16px rgba(90, 75, 60, 0.1);
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: rotateY(-12deg) translateX(-30px) scale(0.96);
+    transition:
+      opacity 0.55s cubic-bezier(.2,.7,.3,1),
+      transform 0.65s cubic-bezier(.2,.7,.3,1);
+    transform-origin: left center;
+  }
+  .page.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: rotateY(0) translateX(0) scale(1);
+    z-index: 2;
+  }
+  .page.leaving-right {
+    opacity: 0;
+    transform: rotateY(-72deg) translateX(-50px) scale(0.92);
+    z-index: 1;
+  }
+  .page.leaving-left {
+    opacity: 0;
+    transform: rotateY(0) translateX(40px) scale(0.96);
+    z-index: 1;
+  }
+
+  .page-inner {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 40px 28px 90px;
+  }
+  .page-inner::-webkit-scrollbar { display: none; }
+
+  /* Volcanic texture overlay */
+  .page::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page-inner > * { position: relative; z-index: 1; }
+
+  /* ========== TYPOGRAPHY ========== */
+  .ornament {
+    text-align: center;
+    font-size: 1.4rem;
+    color: var(--lava);
+    margin: 8px 0 16px;
+    letter-spacing: 0.4em;
+    opacity: 0.7;
+  }
+
+  .page-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--volcanic-deep);
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+  }
+
+  .page-subtitle {
+    font-family: 'Italianno', cursive;
+    font-size: 1.8rem;
+    text-align: center;
+    color: var(--lava);
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--volcanic-deep);
+    letter-spacing: 0.06em;
+    margin: 32px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--paper-edge);
+  }
+
+  .section-title:first-of-type { margin-top: 0; }
+
+  p {
+    font-size: 1.05rem;
+    line-height: 1.75;
+    text-align: justify;
+    hyphens: auto;
+    margin-bottom: 16px;
+    color: var(--ink-soft);
+  }
+
+  .lead {
+    font-size: 1.15rem;
+    font-style: italic;
+    text-align: center;
+    color: var(--ink);
+    margin-bottom: 24px;
+    line-height: 1.8;
+  }
+
+  .highlight {
+    color: var(--lava);
+    font-weight: 500;
+  }
+
+  .volcano-name {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    color: var(--volcanic-deep);
+    letter-spacing: 0.02em;
+  }
+
+  /* ========== INFO BOX ========== */
+  .info-box {
+    background: linear-gradient(135deg, rgba(212, 69, 26, 0.08) 0%, rgba(255, 154, 92, 0.06) 100%);
+    border-left: 3px solid var(--lava);
+    padding: 16px 18px;
+    margin: 20px 0;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .info-box-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--lava);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .info-box p {
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    text-align: left;
+  }
+
+  .info-box p:last-child { margin-bottom: 0; }
+
+  /* ========== TIMELINE ========== */
+  .timeline {
+    position: relative;
+    padding-left: 24px;
+    margin: 24px 0;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--lava), var(--ember), var(--ash));
+    border-radius: 1px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .timeline-item:last-child { margin-bottom: 0; }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 8px;
+    width: 10px;
+    height: 10px;
+    background: var(--lava);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(212, 69, 26, 0.4);
+  }
+
+  .timeline-time {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--lava);
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .timeline-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--volcanic-deep);
+    margin-bottom: 6px;
+  }
+
+  .timeline-desc {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    text-align: left;
+  }
+
+  /* ========== LIST STYLES ========== */
+  .feature-list {
+    list-style: none;
+    margin: 16px 0;
+  }
+
+  .feature-list li {
+    position: relative;
+    padding-left: 24px;
+    margin-bottom: 12px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
+  .feature-list li::before {
+    content: '▲';
+    position: absolute;
+    left: 0;
+    top: 2px;
+    color: var(--lava);
+    font-size: 0.7rem;
+  }
+
+  /* ========== QUOTE ========== */
+  .quote {
+    text-align: center;
+    padding: 24px 16px;
+    margin: 28px 0;
+    border-top: 1px solid var(--paper-edge);
+    border-bottom: 1px solid var(--paper-edge);
+    background: linear-gradient(to bottom, transparent, rgba(212, 69, 26, 0.03), transparent);
+  }
+
+  .quote-text {
+    font-family: 'Italianno', cursive;
+    font-size: 2rem;
+    color: var(--volcanic-deep);
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+
+  .quote-author {
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+  }
+
+  /* ========== LOCATION CARD ========== */
+  .location-card {
+    background: var(--paper-shadow);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid var(--paper-edge);
+  }
+
+  .location-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .location-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--lava) 0%, var(--ember) 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+  }
+
+  .location-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--volcanic-deep);
+  }
+
+  .location-desc {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    text-align: left;
+  }
+
+  .location-tip {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--paper-edge);
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--ink-faint);
+  }
+
+  /* ========== STATS ========== */
+  .stats-row {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px 0;
+    margin: 20px 0;
+    background: linear-gradient(90deg, transparent, rgba(61, 54, 53, 0.06), transparent);
+    border-radius: 8px;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--lava);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+
+  /* ========== NAVIGATION ========== */
+  .nav-hint {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    z-index: 10;
+  }
+
+  .nav-arrow {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--paper-edge);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--paper);
+  }
+
+  .nav-arrow:hover {
+    border-color: var(--lava);
+    color: var(--lava);
+  }
+
+  .nav-arrow:active {
+    transform: scale(0.95);
+  }
+
+  .nav-arrow.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .page-indicator {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+  }
+
+  /* ========== BACK LINK ========== */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    text-decoration: none;
+    margin-bottom: 20px;
+    transition: color 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--lava);
+  }
+
+  .back-link svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* ========== VOLCANIC GLOW EFFECT ========== */
+  @keyframes emberGlow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .ember-glow {
+    animation: emberGlow 3s ease-in-out infinite;
+  }
+
+  /* ========== SWIPE HINT ========== */
+  .swipe-hint {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeInHint 0.5s ease-out 2s forwards;
+  }
+
+  @keyframes fadeInHint {
+    to { opacity: 0.6; }
+  }
+</style>
+</head>
+<body>
+
+<div class="book">
+  <div class="pages">
+
+    <!-- PAGE 1: Title & Introduction -->
+    <div class="page active" data-page="1">
+      <div class="page-inner">
+        <a href="index.html" class="back-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          All Guides
+        </a>
+
+        <div class="ornament">&#9650; &#9650; &#9650;</div>
+        <h1 class="page-title">MOUNT ETNA</h1>
+        <p class="page-subtitle">A Journey to Fire and Ice</p>
+
+        <p class="lead">
+          Europe's tallest active volcano rises from the Sicilian earth,
+          a realm where fire meets snow and ancient myths still breathe in every eruption.
+        </p>
+
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-value">3,357m</div>
+            <div class="stat-label">Elevation</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">500k+</div>
+            <div class="stat-label">Years Old</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">UNESCO</div>
+            <div class="stat-label">Heritage</div>
+          </div>
+        </div>
+
+        <p>
+          The Greeks called her <span class="volcano-name">Aitna</span>, believing the giant Typhon lay trapped
+          beneath her slopes, his fiery breath causing eruptions. The Romans named her <span class="highlight">Aetna</span>
+          and watched her fires from their colony at Catania below.
+        </p>
+
+        <p>
+          Today, <span class="volcano-name">Mongibello</span> ("Beautiful Mountain" in Sicilian Arabic) continues
+          her ancient dialogue with the sky, her snow-capped peak smoking gently above vineyards and citrus groves,
+          a reminder that we walk upon a living earth.
+        </p>
+
+        <div class="quote">
+          <p class="quote-text">"The mountain speaks in fire and ash, and those who listen learn humility."</p>
+          <p class="quote-author">- Sicilian Proverb</p>
+        </div>
+
+        <div class="info-box">
+          <div class="info-box-title">Planning Your Visit</div>
+          <p><strong>Best Season:</strong> May-October for summit access. Winter offers skiing on volcanic slopes.</p>
+          <p><strong>Duration:</strong> Full day recommended. Half-day possible for cable car only.</p>
+          <p><strong>What to Bring:</strong> Layers (temperature drops 15-20°C at summit), sturdy shoes, sunglasses, wind protection.</p>
+        </div>
+      </div>
+      <div class="nav-hint">
+        <div class="nav-arrow disabled">&#8249;</div>
+        <span class="page-indicator">1 / 8</span>
+        <div class="nav-arrow" onclick="nextPage()">&#8250;</div>
+      </div>
+      <div class="swipe-hint">Swipe to explore</div>
+    </div>
+
+    <!-- PAGE 2: The Cable Car Experience -->
+    <div class="page" data-page="2">
+      <div class="page-inner">
+        <div class="ornament">&#128673;</div>
+        <h2 class="page-title">THE CABLE CAR</h2>
+        <p class="page-subtitle">Funivia dell'Etna</p>
+
+        <p class="lead">
+          Rising from 1,900 meters at Rifugio Sapienza to 2,500 meters,
+          the Funivia dell'Etna offers a breathtaking 15-minute ascent over lunar landscapes.
+        </p>
+
+        <div class="section-title">The Journey Upward</div>
+
+        <p>
+          The <span class="highlight">Rifugio Sapienza</span> marks the starting point of your volcanic ascent.
+          At nearly 2,000 meters, you already feel the thin mountain air and notice the temperature drop.
+          Lava fields stretch in all directions&mdash;some centuries old, others from eruptions within living memory.
+        </p>
+
+        <p>
+          As the cable car rises, the landscape transforms. Black volcanic rock, patches of hardy vegetation,
+          and the occasional steam vent paint a picture of geological drama. On clear days, the views
+          extend to the Calabrian coast and the Aeolian Islands floating on the distant sea.
+        </p>
+
+        <div class="info-box">
+          <div class="info-box-title">Cable Car Details</div>
+          <p><strong>Operating Hours:</strong> 9:00 - 16:30 (varies seasonally)</p>
+          <p><strong>Duration:</strong> ~15 minutes each way</p>
+          <p><strong>Cost:</strong> ~€35 round trip (cable car only)</p>
+          <p><strong>Combined Ticket:</strong> ~€70 includes 4x4 transfer and guide to craters</p>
+        </div>
+
+        <div class="section-title">At the Upper Station</div>
+
+        <p>
+          At <span class="highlight">2,500 meters</span>, you emerge into an otherworldly terrain.
+          From here, you have two choices: explore the area independently or continue by
+          specialized 4x4 buses and then on foot to the summit craters at 2,900+ meters.
+        </p>
+
+        <ul class="feature-list">
+          <li>Crater rim walks with authorized guides</li>
+          <li>Views into active fumaroles and steam vents</li>
+          <li>Touch warm volcanic rock just meters from active vents</li>
+          <li>Witness the constantly changing volcanic activity</li>
+        </ul>
+      </div>
+      <div class="nav-hint">
+        <div class="nav-arrow" onclick="prevPage()">&#8249;</div>
+        <span class="page-indicator">2 / 8</span>
+        <div class="nav-arrow" onclick="nextPage()">&#8250;</div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: Summit Experience -->
+    <div class="page" data-page="3">
+      <div class="page-inner">
+        <div class="ornament">&#127755;</div>
+        <h2 class="page-title">THE SUMMIT</h2>
+        <p class="page-subtitle">Crateri Sommitali</p>
+
+        <p class="lead">
+          Standing at the edge of an active crater, watching smoke rise from the earth's depths,
+          you understand why ancient peoples saw gods in these mountains.
+        </p>
+
+        <div class="section-title">Summit Craters</div>
+
+        <p>
+          Etna's summit area hosts four main craters: the <span class="highlight">Northeast Crater</span>
+          (the youngest and most active), the <span class="highlight">Voragine</span> and <span class="highlight">Bocca Nuova</span>
+          (within the central crater), and the <span class="highlight">Southeast Crater</span>, which has been
+          particularly active in recent years.
+        </p>
+
+        <div class="location-card">
+          <div class="location-card-header">
+            <div class="location-icon ember-glow">&#128293;</div>
+            <div class="location-name">Torre del Filosofo</div>
+          </div>
+          <div class="location-desc">
+            At 2,920 meters, this was once the site of a mountain refuge named after the Greek philosopher
+            Empedocles, who allegedly leapt into the crater to prove his immortality. The original structure
+            was destroyed by eruptions, but the viewpoint remains a key stop.
+          </div>
+          <div class="location-tip">
+            The 4x4 buses typically stop here, and guided walks to the craters begin from this point.
+          </div>
+        </div>
+
+        <div class="section-title">Safety First</div>
+
+        <p>
+          Access to summit areas is <span class="highlight">strictly regulated</span> and depends on volcanic activity.
+          Authorized guides monitor conditions constantly. Even when the mountain appears calm, sudden increases
+          in activity can occur. Always follow guide instructions and stay within designated areas.
+        </p>
+
+        <div class="info-box">
+          <div class="info-box-title">Important</div>
+          <p>Summit access may close without notice due to volcanic activity. Check conditions at
+          <strong>Funivia dell'Etna</strong> or <strong>INGV Catania</strong> (National Institute of Geophysics)
+          before ascending.</p>
+        </div>
+      </div>
+      <div class="nav-hint">
+        <div class="nav-arrow" onclick="prevPage()">&#8249;</div>
+        <span class="page-indicator">3 / 8</span>
+        <div class="nav-arrow" onclick="nextPage()">&#8250;</div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: A Day Itinerary -->
+    <div class="page" data-page="4">
+      <div class="page-inner">
+        <div class="ornament">&#9788;</div>
+        <h2 class="page-title">YOUR ETNA DAY</h2>
+        <p class="page-subtitle">A Suggested Journey</p>
+
+        <p class="lead">
+          From the early morning mists to the golden evening light,
+          here is how to make the most of your volcanic adventure.
+        </p>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-time">8:00 AM</div>
+            <div class="timeline-title">Depart from Catania</div>
+            <div class="timeline-desc">
+              Begin the 35km drive south of Etna to Rifugio Sapienza. The winding road passes through
+              lava fields and chestnut forests. Stop at viewpoints to photograph the mountain.
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-time">9:30 AM</div>
+            <div class="timeline-title">Rifugio Sapienza</div>
+            <div class="timeline-desc">
+              Arrive at the base station (1,900m). Purchase tickets for cable car and optional
+              4x4 transfer. Explore the 2001 and 2002 lava flows nearby.
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-time">10:30 AM</div>
+            <div class="timeline-title">Cable Car Ascent</div>
+            <div class="timeline-desc">
+              Rise to 2,500m through spectacular volcanic terrain. At the top, join the
+              4x4 shuttle to Torre del Filosofo.
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-time">11:30 AM - 1:30 PM</div>
+            <div class="timeline-title">Summit Exploration</div>
+            <div class="timeline-desc">
+              Guided walk to active craters. Witness fumaroles, touch warm rock, and
+              gaze into the caldera. Take time to absorb the otherworldly landscape.
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-time">2:00 PM</div>
+            <div class="timeline-title">Descent & Lunch</div>
+            <div class="timeline-desc">
+              Return via 4x4 and cable car. Enjoy a hearty Sicilian lunch at one of the
+              mountain rifugios&mdash;try local sausages grilled over lava stones.
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-time">4:00 PM</div>
+            <div class="timeline-title">Silvestri Craters</div>
+            <div class="timeline-desc">
+              Explore these extinct craters near Rifugio Sapienza on foot. An easy
+              walk with remarkable lunar landscapes and panoramic views.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-hint">
+        <div class="nav-arrow" onclick="prevPage()">&#8249;</div>
+        <span class="page-indicator">4 / 8</span>
+        <div class="nav-arrow" onclick="nextPage()">&#8250;</div>
+      </div>
+    </div>
+
+    <!-- PAGE 5: Catania -->
+    <div class="page" data-page="5">
+      <div class="page-inner">
+        <div class="ornament">&#127963;</div>
+        <h2 class="page-title">CATANIA</h2>
+        <p class="page-subtitle">La Città dell'Elefante</p>
+
+        <p class="lead">
+          Built, destroyed, and rebuilt countless times from Etna's eruptions,
+          Catania is a baroque phoenix rising from volcanic ashes.
+        </p>
+
+        <div class="section-title">The Baroque Heart</div>
+
+        <p>
+          After the catastrophic 1693 earthquake, Catania was rebuilt in exuberant Sicilian Baroque style,
+          using the dark volcanic stone that gives the city its distinctive character. The UNESCO-listed
+          <span class="highlight">Via dei Crociferi</span> showcases this architectural splendor with
+          churches and monasteries carved from black lava rock.
+        </p>
+
+        <div class="location-card">
+          <div class="location-card-header">
+            <div class="location-icon">&#128024;</div>
+            <div class="location-name">Piazza del Duomo</div>
+          </div>
+          <div class="location-desc">
+            The city's heart, dominated by the <span class="highlight">Fontana dell'Elefante</span>&mdash;an
+            ancient lava-stone elephant carrying an Egyptian obelisk. The Duomo, dedicated to Saint Agatha,
+            has been rebuilt seven times after earthquakes and eruptions.
+          </div>
+          <div class="location-tip">
+            Visit in early evening when the black and white baroque facades glow in golden light.
+          </div>
+        </div>
+
+        <div class="section-title">Must-See Catania</div>
+
+        <ul class="feature-list">
+          <li><strong>La Pescheria:</strong> The famous fish market, a sensory explosion of the sea's bounty. Mornings only.</li>
+          <li><strong>Monastery of San Nicolò l'Arena:</strong> One of Europe's largest Benedictine monasteries, now a university.</li>
+          <li><strong>Roman Amphitheatre:</strong> Hidden beneath Piazza Stesicoro, once held 15,000 spectators.</li>
+          <li><strong>Via Etnea:</strong> The elegant main street running toward the volcano, lined with baroque palaces.</li>
+          <li><strong>Castello Ursino:</strong> Frederick II's 13th-century fortress, now housing the civic museum.</li>
+        </ul>
+
+        <div class="info-box">
+          <div class="info-box-title">Local Flavors</div>
+          <p><strong>Arancini:</strong> Fried rice balls, Catania's signature street food.</p>
+          <p><strong>Pasta alla Norma:</strong> Named after Bellini's opera, with eggplant and ricotta salata.</p>
+          <p><strong>Granita:</strong> The breakfast of champions&mdash;with brioche and whipped cream.</p>
+        </div>
+      </div>
+      <div class="nav-hint">
+        <div class="nav-arrow" onclick="prevPage()">&#8249;</div>
+        <span class="page-indicator">5 / 8</span>
+        <div class="nav-arrow" onclick="nextPage()">&#8250;</div>
+      </div>
+    </div>
+
+    <!-- PAGE 6: Taormina -->
+    <div class="page" data-page="6">
+      <div class="page-inner">
+        <div class="ornament">&#127965;</div>
+        <h2 class="page-title">TAORMINA</h2>
+        <p class="page-subtitle">The Balcony of Sicily</p>
+
+        <p class="lead">
+          Perched on a cliff 200 meters above the Ionian Sea, Taormina has captivated
+          travelers since the Grand Tour era with its impossible beauty.
+        </p>
+
+        <div class="section-title">The Greek Theatre</div>
+
+        <p>
+          The <span class="highlight">Teatro Antico</span> is the undisputed star. Built by the Greeks in
+          the 3rd century BC and later modified by the Romans, it offers what Goethe called "the greatest
+          work of art and nature combined"&mdash;a stage framed by Mount Etna and the sea.
+        </p>
+
+        <p>
+          Arrive early morning to avoid crowds and catch the soft light on the ancient stones. In summer,
+          the theatre hosts concerts and performances&mdash;experiencing opera against Etna's silhouette
+          is unforgettable.
+        </p>
+
+        <div class="location-card">
+          <div class="location-card-header">
+            <div class="location-icon">&#128248;</div>
+            <div class="location-name">Isola Bella</div>
+          </div>
+          <div class="location-desc">
+            This tiny island nature reserve sits in a perfect cove below Taormina, connected to the beach
+            by a narrow strip of sand. Take the cable car (<span class="highlight">Funivia Taormina-Mazzarò</span>)
+            down for swimming and the views back up to the hilltop town.
+          </div>
+          <div class="location-tip">
+            The water is crystal clear. Bring snorkeling gear to explore the marine reserve.
+          </div>
+        </div>
+
+        <div class="section-title">Wandering the Town</div>
+
+        <ul class="feature-list">
+          <li><strong>Corso Umberto:</strong> The elegant main street, pedestrianized and perfect for evening passeggiata.</li>
+          <li><strong>Piazza IX Aprile:</strong> A terrace over the sea with checkerboard paving and endless views.</li>
+          <li><strong>Giardini della Villa Comunale:</strong> Victorian gardens with eccentric follies and Etna views.</li>
+          <li><strong>Castelmola:</strong> A tiny village above Taormina reached by winding road&mdash;don't miss the almond wine.</li>
+        </ul>
+
+        <div class="quote">
+          <p class="quote-text">"If somebody should spend only one day in Sicily and asked: What shall I see? I would answer without hesitation: Taormina."</p>
+          <p class="quote-author">- Guy de Maupassant</p>
+        </div>
+      </div>
+      <div class="nav-hint">
+        <div class="nav-arrow" onclick="prevPage()">&#8249;</div>
+        <span class="page-indicator">6 / 8</span>
+        <div class="nav-arrow" onclick="nextPage()">&#8250;</div>
+      </div>
+    </div>
+
+    <!-- PAGE 7: Etna Wine & Villages -->
+    <div class="page" data-page="7">
+      <div class="page-inner">
+        <div class="ornament">&#127863;</div>
+        <h2 class="page-title">ETNA WINE COUNTRY</h2>
+        <p class="page-subtitle">Vini Vulcanici</p>
+
+        <p class="lead">
+          The volcanic slopes produce wines of extraordinary character,
+          grown on terraces where vines cling to mineral-rich ash and lava.
+        </p>
+
+        <div class="section-title">The Volcanic Terroir</div>
+
+        <p>
+          <span class="highlight">Etna DOC</span> wines have gained international acclaim. The native
+          <span class="highlight">Nerello Mascalese</span> grape produces reds often compared to Burgundy&mdash;elegant,
+          complex, with a distinctive minerality from volcanic soils. The white <span class="highlight">Carricante</span>
+          is equally exceptional, with bright acidity and floral notes.
+        </p>
+
+        <div class="location-card">
+          <div class="location-card-header">
+            <div class="location-icon">&#127815;</div>
+            <div class="location-name">Randazzo</div>
+          </div>
+          <div class="location-desc">
+            This medieval town, miraculously spared by lava flows, is the heart of Etna wine country.
+            Its streets are built entirely of black volcanic stone, creating a striking atmosphere.
+            The weekly Sunday market draws visitors from across the region.
+          </div>
+          <div class="location-tip">
+            Visit Cantina Benanti or Passopisciaro for tastings with views over ancient vineyards.
+          </div>
+        </div>
+
+        <div class="section-title">Villages Worth Exploring</div>
+
+        <ul class="feature-list">
+          <li><strong>Zafferana Etnea:</strong> Famous for honey and the autumn Ottobrata festival.</li>
+          <li><strong>Linguaglossa:</strong> Gateway to the northern slopes, with excellent hiking access.</li>
+          <li><strong>Nicolosi:</strong> The closest town to Rifugio Sapienza, base for Etna excursions.</li>
+          <li><strong>Bronte:</strong> The pistachio capital of Italy&mdash;everything here is green and delicious.</li>
+        </ul>
+
+        <div class="info-box">
+          <div class="info-box-title">The Circumetnea Railway</div>
+          <p>This narrow-gauge railway circles the volcano, connecting Catania to Riposto via Randazzo.
+          The 3-hour journey passes through lava fields, orchards, and vineyards&mdash;one of Sicily's
+          most scenic train rides. Departures from Catania Borgo station.</p>
+        </div>
+      </div>
+      <div class="nav-hint">
+        <div class="nav-arrow" onclick="prevPage()">&#8249;</div>
+        <span class="page-indicator">7 / 8</span>
+        <div class="nav-arrow" onclick="nextPage()">&#8250;</div>
+      </div>
+    </div>
+
+    <!-- PAGE 8: Practical Information -->
+    <div class="page" data-page="8">
+      <div class="page-inner">
+        <div class="ornament">&#9733;</div>
+        <h2 class="page-title">PRACTICAL NOTES</h2>
+        <p class="page-subtitle">Essential Information</p>
+
+        <div class="section-title">Getting There</div>
+
+        <p>
+          <strong>By Car:</strong> From Catania, take the A18 autostrada south, then SP92 to Rifugio Sapienza (~1 hour).
+          From Taormina, head south on the A18 (~1.5 hours).
+        </p>
+
+        <p>
+          <strong>By Bus:</strong> AST buses run from Catania (Piazza Papa Giovanni XXIII) to Rifugio Sapienza.
+          Check schedules&mdash;service is limited, especially off-season.
+        </p>
+
+        <p>
+          <strong>Organized Tours:</strong> Many operators offer full-day excursions from Catania or Taormina,
+          including transport, guide, and crater access.
+        </p>
+
+        <div class="section-title">What to Wear</div>
+
+        <ul class="feature-list">
+          <li>Sturdy hiking boots or shoes with good grip</li>
+          <li>Layers: temperatures drop ~6°C per 1000m of elevation</li>
+          <li>Wind-proof jacket&mdash;summit winds can be fierce</li>
+          <li>Sunglasses and sun protection (UV is intense at altitude)</li>
+          <li>Long pants to protect from sharp volcanic rock</li>
+        </ul>
+
+        <div class="section-title">When to Visit</div>
+
+        <p>
+          <strong>Spring (April-June):</strong> Wildflowers bloom on lower slopes, snow still caps the summit.
+          Mild temperatures, fewer crowds.
+        </p>
+
+        <p>
+          <strong>Summer (July-September):</strong> Peak season. Best conditions for summit access.
+          Book cable car early to avoid queues.
+        </p>
+
+        <p>
+          <strong>Autumn (October-November):</strong> Grape harvest, chestnut festivals. Weather can be unpredictable.
+        </p>
+
+        <p>
+          <strong>Winter (December-March):</strong> Etna transforms into a ski resort. Unique experience
+          of skiing on an active volcano with sea views.
+        </p>
+
+        <div class="quote">
+          <p class="quote-text">"The fire below reminds us to live fully, for the earth itself is restless and alive."</p>
+          <p class="quote-author">- Anonymous</p>
+        </div>
+
+        <div class="info-box">
+          <div class="info-box-title">Stay Connected</div>
+          <p><strong>INGV Catania:</strong> www.ct.ingv.it (real-time volcano monitoring)</p>
+          <p><strong>Funivia dell'Etna:</strong> www.funiviaetna.com (cable car info)</p>
+          <p><strong>Parco dell'Etna:</strong> www.parcoetna.it (park authority)</p>
+        </div>
+      </div>
+      <div class="nav-hint">
+        <div class="nav-arrow" onclick="prevPage()">&#8249;</div>
+        <span class="page-indicator">8 / 8</span>
+        <div class="nav-arrow disabled">&#8250;</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let currentPage = 1;
+  const totalPages = 8;
+  const pages = document.querySelectorAll('.page');
+
+  function showPage(n, direction) {
+    const current = document.querySelector('.page.active');
+    const next = document.querySelector(`.page[data-page="${n}"]`);
+
+    if (!next || current === next) return;
+
+    // Reset scroll position
+    next.querySelector('.page-inner').scrollTop = 0;
+
+    // Apply transition classes
+    current.classList.remove('active');
+    current.classList.add(direction === 'next' ? 'leaving-right' : 'leaving-left');
+
+    next.classList.add('active');
+
+    // Cleanup
+    setTimeout(() => {
+      current.classList.remove('leaving-right', 'leaving-left');
+    }, 650);
+
+    currentPage = n;
+    updateNav();
+  }
+
+  function nextPage() {
+    if (currentPage < totalPages) showPage(currentPage + 1, 'next');
+  }
+
+  function prevPage() {
+    if (currentPage > 1) showPage(currentPage - 1, 'prev');
+  }
+
+  function updateNav() {
+    document.querySelectorAll('.nav-hint').forEach(nav => {
+      const arrows = nav.querySelectorAll('.nav-arrow');
+      arrows[0].classList.toggle('disabled', currentPage === 1);
+      arrows[1].classList.toggle('disabled', currentPage === totalPages);
+      nav.querySelector('.page-indicator').textContent = `${currentPage} / ${totalPages}`;
+    });
+  }
+
+  // Touch/swipe support
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+  }, { passive: true });
+
+  function handleSwipe() {
+    const threshold = 50;
+    const diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) nextPage();
+      else prevPage();
+    }
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') nextPage();
+    if (e.key === 'ArrowLeft') prevPage();
+  });
+</script>
+
+</body>
+</html>
