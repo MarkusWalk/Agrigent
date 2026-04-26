@@ -962,10 +962,24 @@
     letter-spacing: 0.25em;
     text-transform: uppercase;
   }
-  .reading-indicator .stop-btn {
-    background: none; border: none; color: var(--ember); cursor: pointer; padding: 2px;
-    display: flex; align-items: center;
+  .reading-indicator .ind-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--ember);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
   }
+  .reading-indicator .ind-btn:hover {
+    border-color: var(--ember);
+    background: rgba(216, 128, 74, 0.15);
+  }
+  .reading-indicator .ind-btn:active { transform: scale(0.92); }
+  .reading-indicator.paused .waves { opacity: 0.35; }
+  .reading-indicator.paused .wave { animation-play-state: paused; }
 
   /* ========== LEAFLET MAP ========== */
   .map-container {
@@ -2625,13 +2639,30 @@ document.getElementById('ambientBtn').addEventListener('click', () => {
 /* ============================================================
    PART IX — TTS
    ============================================================ */
-let currentUtterance = null, isSpeaking = false;
+let currentUtterance = null, isSpeaking = false, isPaused = false;
 function getPageText() {
   const ap = document.querySelector('.page.active .page-inner');
   if (!ap) return '';
   const c = ap.cloneNode(true);
   c.querySelectorAll('.back-link, .sketch-frame, .margin-note, .specimen-tag, svg, .page-header, .page-footer, #sicilyMap, #eruptionTimeline, #altitudeProfile, #volcano3d').forEach(el => el.remove());
   return (c.innerText || '').replace(/\s+/g, ' ').trim();
+}
+function setPauseUI(paused) {
+  const ind = document.getElementById('readingIndicator');
+  const status = document.getElementById('ttsStatus');
+  const pi = document.getElementById('pauseIcon');
+  const py = document.getElementById('playIcon');
+  if (paused) {
+    ind.classList.add('paused');
+    status.textContent = 'Paused';
+    pi.style.display = 'none';
+    py.style.display = '';
+  } else {
+    ind.classList.remove('paused');
+    status.textContent = 'Reading';
+    pi.style.display = '';
+    py.style.display = 'none';
+  }
 }
 function startTTS() {
   if (!('speechSynthesis' in window)) { alert('TTS not supported.'); return; }
@@ -2646,20 +2677,45 @@ function startTTS() {
                voices.find(v => v.lang.startsWith('en'));
   if (pref) currentUtterance.voice = pref;
   currentUtterance.onstart = () => {
-    isSpeaking = true;
+    isSpeaking = true; isPaused = false;
+    setPauseUI(false);
     document.getElementById('readingIndicator').classList.add('visible');
     document.getElementById('ttsBtn').classList.add('active');
   };
   currentUtterance.onend = currentUtterance.onerror = () => {
-    isSpeaking = false;
+    isSpeaking = false; isPaused = false;
+    setPauseUI(false);
     document.getElementById('readingIndicator').classList.remove('visible');
     document.getElementById('ttsBtn').classList.remove('active');
   };
+  currentUtterance.onpause  = () => { isPaused = true;  setPauseUI(true); };
+  currentUtterance.onresume = () => { isPaused = false; setPauseUI(false); };
   speechSynthesis.speak(currentUtterance);
 }
+function pauseTTS() {
+  if (window.speechSynthesis && speechSynthesis.speaking && !speechSynthesis.paused) {
+    speechSynthesis.pause();
+    isPaused = true;
+    setPauseUI(true);
+  }
+}
+function resumeTTS() {
+  if (window.speechSynthesis && speechSynthesis.paused) {
+    speechSynthesis.resume();
+    isPaused = false;
+    setPauseUI(false);
+  }
+}
+function togglePauseTTS() {
+  if (!isSpeaking) return;
+  if (isPaused) resumeTTS(); else pauseTTS();
+}
 function stopTTS() {
-  if (window.speechSynthesis && speechSynthesis.speaking) speechSynthesis.cancel();
-  isSpeaking = false;
+  if (window.speechSynthesis && (speechSynthesis.speaking || speechSynthesis.paused)) {
+    speechSynthesis.cancel();
+  }
+  isSpeaking = false; isPaused = false;
+  setPauseUI(false);
   document.getElementById('readingIndicator')?.classList.remove('visible');
   document.getElementById('ttsBtn')?.classList.remove('active');
 }
@@ -2668,7 +2724,15 @@ if ('speechSynthesis' in window) {
   speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 }
 document.getElementById('ttsBtn').addEventListener('click', () => {
-  if (isSpeaking) stopTTS(); else startTTS();
+  if (!isSpeaking) { startTTS(); return; }
+  // while speaking, the main button toggles pause/resume
+  togglePauseTTS();
+});
+document.addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 'p' && isSpeaking) {
+    e.preventDefault();
+    togglePauseTTS();
+  }
 });
 </script>
 
